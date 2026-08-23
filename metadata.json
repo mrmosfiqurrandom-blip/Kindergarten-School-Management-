@@ -1,0 +1,6 @@
+{
+  "name": "Kindergarten School Management System",
+  "description": "All-in-one Kindergarten School Management & Automated Excel Workbook Generator with 10 modules: Dashboard, Student Database, Digital Profile, Attendance, Fees, Invoices, WhatsApp Due Alerts, Payroll, Expenses, and Academic Report Cards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
