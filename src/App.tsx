@@ -41,9 +41,9 @@ import { LiveSyncStatusBar } from './components/LiveSyncStatusBar';
 import { FileSpreadsheet, Code2, Heart, Zap } from 'lucide-react';
 
 export default function App() {
-  // Authentication State
+  // Authentication State: Require username and password login by default
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    return getStoredCurrentUser() || INITIAL_USERS[0];
+    return getStoredCurrentUser();
   });
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
