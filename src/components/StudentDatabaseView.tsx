@@ -57,12 +57,19 @@ export const StudentDatabaseView: React.FC<StudentDatabaseViewProps> = ({
   const bloodGroups: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 
   const filteredStudents = students.filter((s) => {
+    const term = searchTerm.trim().toLowerCase();
     const matchesSearch =
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.nameBn.includes(searchTerm) ||
-      s.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.fatherName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.contactNumber.includes(searchTerm);
+      !term ||
+      s.name.toLowerCase().includes(term) ||
+      (s.nameBn && s.nameBn.toLowerCase().includes(term)) ||
+      s.id.toLowerCase().includes(term) ||
+      (s.fatherName && s.fatherName.toLowerCase().includes(term)) ||
+      (s.motherName && s.motherName.toLowerCase().includes(term)) ||
+      (s.contactNumber && s.contactNumber.includes(term)) ||
+      (s.emergencyContact && s.emergencyContact.includes(term)) ||
+      s.rollNo.toString().includes(term) ||
+      s.studentClass.toLowerCase().includes(term) ||
+      s.section.toLowerCase().includes(term);
 
     const matchesClass = selectedClass === 'All' || s.studentClass === selectedClass;
     const matchesStatus = selectedStatus === 'All' || s.status === selectedStatus;

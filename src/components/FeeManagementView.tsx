@@ -62,10 +62,14 @@ export const FeeManagementView: React.FC<FeeManagementViewProps> = ({
   const months = ['January 2025', 'February 2025', 'March 2025', 'April 2025'];
 
   const filteredFees = fees.filter((f) => {
+    const term = searchTerm.trim().toLowerCase();
     const matchesSearch =
-      f.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      f.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      f.receiptNo.toLowerCase().includes(searchTerm.toLowerCase());
+      !term ||
+      f.studentName.toLowerCase().includes(term) ||
+      f.studentId.toLowerCase().includes(term) ||
+      f.receiptNo.toLowerCase().includes(term) ||
+      f.studentClass.toLowerCase().includes(term) ||
+      f.paymentMethod.toLowerCase().includes(term);
     const matchesClass = selectedClass === 'All' || f.studentClass === selectedClass;
     const matchesStatus = selectedStatus === 'All' || f.paymentStatus === selectedStatus;
     const matchesMonth = selectedMonth === 'All' || f.month === selectedMonth;

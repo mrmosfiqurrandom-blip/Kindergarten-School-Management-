@@ -1,0 +1,148 @@
+{
+  "entities": {
+    "Student": {
+      "title": "Student",
+      "description": "A student enrolled in the kindergarten school.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "nameBn": { "type": "string" },
+        "studentClass": { "type": "string" },
+        "section": { "type": "string" },
+        "rollNo": { "type": "number" },
+        "fatherName": { "type": "string" },
+        "motherName": { "type": "string" },
+        "contactNumber": { "type": "string" },
+        "emergencyContact": { "type": "string" },
+        "address": { "type": "string" },
+        "admissionDate": { "type": "string" },
+        "bloodGroup": { "type": "string" },
+        "status": { "type": "string" },
+        "avatarUrl": { "type": "string" }
+      },
+      "required": ["id", "name", "studentClass", "rollNo"]
+    },
+    "FeeRecord": {
+      "title": "FeeRecord",
+      "description": "A tuition or school fee record for a student.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "studentClass": { "type": "string" },
+        "month": { "type": "string" },
+        "admissionFee": { "type": "number" },
+        "monthlyTuitionFee": { "type": "number" },
+        "examFee": { "type": "number" },
+        "transportFee": { "type": "number" },
+        "fineFee": { "type": "number" },
+        "totalPayable": { "type": "number" },
+        "amountPaid": { "type": "number" },
+        "dueAmount": { "type": "number" },
+        "paymentDate": { "type": "string" },
+        "paymentStatus": { "type": "string" },
+        "receiptNo": { "type": "string" },
+        "paymentMethod": { "type": "string" }
+      },
+      "required": ["id", "studentId", "month", "totalPayable", "paymentStatus"]
+    },
+    "Staff": {
+      "title": "Staff",
+      "description": "A teacher or staff member record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "designation": { "type": "string" },
+        "contact": { "type": "string" },
+        "basicSalary": { "type": "number" },
+        "allowances": { "type": "number" },
+        "deductions": { "type": "number" },
+        "netSalary": { "type": "number" },
+        "paymentDate": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "name", "designation", "netSalary"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "An operational expense record for the school.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "approvedBy": { "type": "string" }
+      },
+      "required": ["id", "date", "category", "amount"]
+    },
+    "AttendanceRecord": {
+      "title": "AttendanceRecord",
+      "description": "Daily student attendance record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "studentId": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "date", "studentId", "status"]
+    },
+    "AcademicResult": {
+      "title": "AcademicResult",
+      "description": "Term or evaluation marksheet for a student.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "studentClass": { "type": "string" },
+        "rollNo": { "type": "number" },
+        "term": { "type": "string" },
+        "bangla": { "type": "number" },
+        "english": { "type": "number" },
+        "math": { "type": "number" },
+        "gk": { "type": "number" },
+        "science": { "type": "number" },
+        "drawing": { "type": "number" },
+        "totalMarks": { "type": "number" },
+        "averageMarks": { "type": "number" },
+        "gpa": { "type": "number" },
+        "grade": { "type": "string" },
+        "status": { "type": "string" },
+        "remarks": { "type": "string" }
+      },
+      "required": ["id", "studentId", "term", "totalMarks", "grade"]
+    }
+  },
+  "firestore": {
+    "/students/{studentId}": {
+      "schema": "Student",
+      "description": "Collection of kindergarten student profiles."
+    },
+    "/fees/{feeId}": {
+      "schema": "FeeRecord",
+      "description": "Collection of student fee payments and dues."
+    },
+    "/staff/{staffId}": {
+      "schema": "Staff",
+      "description": "Collection of staff and teachers payroll records."
+    },
+    "/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Collection of daily kindergarten school expenses."
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "AttendanceRecord",
+      "description": "Collection of daily attendance entries."
+    },
+    "/results/{resultId}": {
+      "schema": "AcademicResult",
+      "description": "Collection of student exam marks and report cards."
+    }
+  }
+}

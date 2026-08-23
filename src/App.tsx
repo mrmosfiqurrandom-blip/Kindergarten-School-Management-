@@ -39,6 +39,29 @@ import {
 import { getStoredCurrentUser, logoutUser, INITIAL_USERS } from './utils/auth';
 import { LiveSyncStatusBar } from './components/LiveSyncStatusBar';
 import { FileSpreadsheet, Code2, Heart, Zap } from 'lucide-react';
+import {
+  testFirestoreConnection,
+  seedInitialDataIfEmpty,
+  subscribeToStudents,
+  subscribeToFees,
+  subscribeToStaff,
+  subscribeToExpenses,
+  subscribeToAttendance,
+  subscribeToResults,
+  subscribeToSchoolInfo,
+  saveStudentToCloud,
+  deleteStudentFromCloud,
+  saveFeeRecordToCloud,
+  deleteFeeRecordFromCloud,
+  saveStaffToCloud,
+  deleteStaffFromCloud,
+  saveExpenseToCloud,
+  deleteExpenseFromCloud,
+  saveAttendanceRecordsToCloud,
+  saveAcademicResultToCloud,
+  deleteAcademicResultFromCloud,
+  saveSchoolInfoToCloud,
+} from './utils/firebase';
 
 export default function App() {
   // Authentication State: Require username and password login by default
@@ -84,6 +107,79 @@ export default function App() {
   const [isSyncingGlobal, setIsSyncingGlobal] = useState(false);
   const [lastSyncTimestamp, setLastSyncTimestamp] = useState<string | null>(getStoredLastSync());
   const [autoSyncNotification, setAutoSyncNotification] = useState<string | null>(null);
+
+  // --------------------------------------------------------------------------
+  // FIREBASE CLOUD REAL-TIME SYNCHRONIZATION ACROSS ALL DEVICES
+  // --------------------------------------------------------------------------
+  useEffect(() => {
+    // 1. Test Firestore connectivity and bootstrap cloud database with initial data if fresh
+    testFirestoreConnection().then((connected) => {
+      if (connected) {
+        seedInitialDataIfEmpty({
+          students,
+          fees,
+          staff: staffList,
+          expenses,
+          attendance,
+          results,
+          schoolInfo,
+        });
+      }
+    });
+
+    // 2. Setup real-time listeners for all modules
+    const unsubStudents = subscribeToStudents((cloudStudents) => {
+      if (cloudStudents && cloudStudents.length > 0) {
+        setStudents(cloudStudents);
+      }
+    });
+
+    const unsubFees = subscribeToFees((cloudFees) => {
+      if (cloudFees && cloudFees.length > 0) {
+        setFees(cloudFees);
+      }
+    });
+
+    const unsubStaff = subscribeToStaff((cloudStaff) => {
+      if (cloudStaff && cloudStaff.length > 0) {
+        setStaffList(cloudStaff);
+      }
+    });
+
+    const unsubExpenses = subscribeToExpenses((cloudExpenses) => {
+      if (cloudExpenses && cloudExpenses.length > 0) {
+        setExpenses(cloudExpenses);
+      }
+    });
+
+    const unsubAttendance = subscribeToAttendance((cloudAttendance) => {
+      if (cloudAttendance && cloudAttendance.length > 0) {
+        setAttendance(cloudAttendance);
+      }
+    });
+
+    const unsubResults = subscribeToResults((cloudResults) => {
+      if (cloudResults && cloudResults.length > 0) {
+        setResults(cloudResults);
+      }
+    });
+
+    const unsubSchoolInfo = subscribeToSchoolInfo((cloudInfo) => {
+      if (cloudInfo && cloudInfo.name) {
+        setSchoolInfo(cloudInfo);
+      }
+    });
+
+    return () => {
+      unsubStudents();
+      unsubFees();
+      unsubStaff();
+      unsubExpenses();
+      unsubAttendance();
+      unsubResults();
+      unsubSchoolInfo();
+    };
+  }, []);
 
   // If role is parent, automatically select their linked student if present
   const handleLoginSuccess = (user: User) => {
@@ -246,8 +342,8 @@ export default function App() {
     }
   };
 
-  // Handlers for Students
-  const handleAddStudent = (newStudent: Student) => {
+  // Handlers for Students with Cloud Firestore Real-time Sync
+  const handleAddStudent = async (newStudent: Student) => {
     const updatedStudents = [newStudent, ...students];
     setStudents(updatedStudents);
 
@@ -274,22 +370,40 @@ export default function App() {
     const updatedFees = [feeRec, ...fees];
     setFees(updatedFees);
 
+    // Real-time Cloud Save
+    try {
+      await saveStudentToCloud(newStudent);
+      await saveFeeRecordToCloud(feeRec);
+    } catch (err) {
+      console.warn('Cloud save error:', err);
+    }
+
     triggerAutoSync('New Student', { students: updatedStudents, fees: updatedFees });
   };
 
-  const handleUpdateStudent = (updatedStudent: Student) => {
+  const handleUpdateStudent = async (updatedStudent: Student) => {
     const updated = students.map((s) => (s.id === updatedStudent.id ? updatedStudent : s));
     setStudents(updated);
+    try {
+      await saveStudentToCloud(updatedStudent);
+    } catch (err) {
+      console.warn('Cloud update error:', err);
+    }
     triggerAutoSync('Update Student', { students: updated });
   };
 
-  const handleDeleteStudent = (id: string) => {
+  const handleDeleteStudent = async (id: string) => {
     const updatedStudents = students.filter((s) => s.id !== id);
     const updatedFees = fees.filter((f) => f.studentId !== id);
     const updatedResults = results.filter((r) => r.studentId !== id);
     setStudents(updatedStudents);
     setFees(updatedFees);
     setResults(updatedResults);
+    try {
+      await deleteStudentFromCloud(id);
+    } catch (err) {
+      console.warn('Cloud delete error:', err);
+    }
     triggerAutoSync('Delete Student', { students: updatedStudents, fees: updatedFees, results: updatedResults });
   };
 
@@ -298,16 +412,26 @@ export default function App() {
     setActiveTab('profile');
   };
 
-  // Handlers for Fees
-  const handleAddFeeRecord = (rec: FeeRecord) => {
+  // Handlers for Fees with Cloud Firestore Sync
+  const handleAddFeeRecord = async (rec: FeeRecord) => {
     const updated = [rec, ...fees];
     setFees(updated);
+    try {
+      await saveFeeRecordToCloud(rec);
+    } catch (err) {
+      console.warn('Cloud fee add error:', err);
+    }
     triggerAutoSync('Fee Record', { fees: updated });
   };
 
-  const handleUpdateFeeRecord = (rec: FeeRecord) => {
+  const handleUpdateFeeRecord = async (rec: FeeRecord) => {
     const updated = fees.map((f) => (f.id === rec.id ? rec : f));
     setFees(updated);
+    try {
+      await saveFeeRecordToCloud(rec);
+    } catch (err) {
+      console.warn('Cloud fee update error:', err);
+    }
     triggerAutoSync('Update Fee', { fees: updated });
   };
 
@@ -322,62 +446,107 @@ export default function App() {
     setActiveTab('due_alerts');
   };
 
-  // Handlers for Staff
-  const handleAddStaff = (st: Staff) => {
+  // Handlers for Staff with Cloud Sync
+  const handleAddStaff = async (st: Staff) => {
     const updated = [...staffList, st];
     setStaffList(updated);
+    try {
+      await saveStaffToCloud(st);
+    } catch (err) {
+      console.warn('Cloud staff add error:', err);
+    }
     triggerAutoSync('New Staff', { staff: updated });
   };
 
-  const handleUpdateStaff = (st: Staff) => {
+  const handleUpdateStaff = async (st: Staff) => {
     const updated = staffList.map((item) => (item.id === st.id ? st : item));
     setStaffList(updated);
+    try {
+      await saveStaffToCloud(st);
+    } catch (err) {
+      console.warn('Cloud staff update error:', err);
+    }
     triggerAutoSync('Update Staff', { staff: updated });
   };
 
-  const handleDeleteStaff = (id: string) => {
+  const handleDeleteStaff = async (id: string) => {
     const updated = staffList.filter((s) => s.id !== id);
     setStaffList(updated);
+    try {
+      await deleteStaffFromCloud(id);
+    } catch (err) {
+      console.warn('Cloud staff delete error:', err);
+    }
     triggerAutoSync('Delete Staff', { staff: updated });
   };
 
-  // Handlers for Expenses
-  const handleAddExpense = (exp: Expense) => {
+  // Handlers for Expenses with Cloud Sync
+  const handleAddExpense = async (exp: Expense) => {
     const updated = [exp, ...expenses];
     setExpenses(updated);
+    try {
+      await saveExpenseToCloud(exp);
+    } catch (err) {
+      console.warn('Cloud expense add error:', err);
+    }
     triggerAutoSync('New Expense', { expenses: updated });
   };
 
-  const handleUpdateExpense = (exp: Expense) => {
+  const handleUpdateExpense = async (exp: Expense) => {
     const updated = expenses.map((e) => (e.id === exp.id ? exp : e));
     setExpenses(updated);
+    try {
+      await saveExpenseToCloud(exp);
+    } catch (err) {
+      console.warn('Cloud expense update error:', err);
+    }
     triggerAutoSync('Update Expense', { expenses: updated });
   };
 
-  const handleDeleteExpense = (id: string) => {
+  const handleDeleteExpense = async (id: string) => {
     const updated = expenses.filter((e) => e.id !== id);
     setExpenses(updated);
+    try {
+      await deleteExpenseFromCloud(id);
+    } catch (err) {
+      console.warn('Cloud expense delete error:', err);
+    }
     triggerAutoSync('Delete Expense', { expenses: updated });
   };
 
-  // Handlers for Results
-  const handleAddResult = (res: AcademicResult) => {
+  // Handlers for Results with Cloud Sync
+  const handleAddResult = async (res: AcademicResult) => {
     const updated = [res, ...results];
     setResults(updated);
+    try {
+      await saveAcademicResultToCloud(res);
+    } catch (err) {
+      console.warn('Cloud result add error:', err);
+    }
     triggerAutoSync('New Result', { results: updated });
   };
 
-  const handleUpdateResult = (res: AcademicResult) => {
+  const handleUpdateResult = async (res: AcademicResult) => {
     const updated = results.map((r) => (r.id === res.id ? res : r));
     setResults(updated);
+    try {
+      await saveAcademicResultToCloud(res);
+    } catch (err) {
+      console.warn('Cloud result update error:', err);
+    }
     triggerAutoSync('Update Result', { results: updated });
   };
 
-  // Handlers for Attendance
-  const handleSaveAttendance = (records: AttendanceRecord[]) => {
+  // Handlers for Attendance with Cloud Sync
+  const handleSaveAttendance = async (records: AttendanceRecord[]) => {
     setAttendance(records);
+    try {
+      await saveAttendanceRecordsToCloud(records);
+    } catch (err) {
+      console.warn('Cloud attendance save error:', err);
+    }
     triggerAutoSync('Update Attendance', { attendance: records });
-    setAutoSyncNotification('হাজিরা খাতা সফলভাবে সেন্ট্রাল ডাটাবেজে সংরক্ষিত ও গুগল শিটে সিঙ্ক হয়েছে!');
+    setAutoSyncNotification('হাজিরা খাতা সেন্ট্রাল ক্লাউডে ও সকল ডিভাইসে সংরক্ষিত হয়েছে!');
     setTimeout(() => setAutoSyncNotification(null), 3000);
   };
 

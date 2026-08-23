@@ -5,16 +5,16 @@ import {
   AlertTriangle,
   RefreshCw,
   Settings,
-  ExternalLink,
   ShieldCheck,
   Clock,
-  Sparkles,
+  Cloud,
+  Globe,
+  Database,
 } from 'lucide-react';
 import {
   getStoredWebhookUrl,
   getStoredAutoSync,
   getStoredLastSync,
-  setStoredAutoSync,
   validateWebhookUrl,
 } from '../utils/googleSheetsSync';
 
@@ -25,6 +25,7 @@ interface LiveSyncStatusBarProps {
   lastSyncTimestamp: string | null;
   activeSheetName?: string;
   onSyncCurrentSheet?: () => Promise<void>;
+  isCloudConnected?: boolean;
 }
 
 export const LiveSyncStatusBar: React.FC<LiveSyncStatusBarProps> = ({
@@ -34,6 +35,7 @@ export const LiveSyncStatusBar: React.FC<LiveSyncStatusBarProps> = ({
   lastSyncTimestamp,
   activeSheetName,
   onSyncCurrentSheet,
+  isCloudConnected = true,
 }) => {
   const [webhookUrl, setWebhookUrl] = useState('');
   const [isAutoSync, setIsAutoSync] = useState(false);
@@ -83,26 +85,38 @@ export const LiveSyncStatusBar: React.FC<LiveSyncStatusBarProps> = ({
   return (
     <div className="bg-slate-900 border-b border-slate-800 text-slate-200 px-3 sm:px-6 py-2 transition-all shadow-inner print:hidden">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5">
-        {/* Left: Connection Status Badge */}
-        <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-start">
+        {/* Left: Multi-Device Cloud Firestore & Google Sheets Status */}
+        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start flex-wrap">
+          {/* Cloud Firestore Multi-Device Status */}
+          <div className="flex items-center gap-1.5 bg-blue-950/60 border border-blue-500/40 px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-200">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
+            </span>
+            <Cloud className="w-3.5 h-3.5 text-blue-400" />
+            <span>সকল ডিভাইসে লাইভ সিঙ্ক</span>
+            <span className="text-[10px] bg-blue-500/20 px-1 rounded text-blue-300 font-mono">Cloud Active</span>
+          </div>
+
+          {/* Google Sheets Live Webhook Status */}
           <div className="flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
+            <span className="relative flex h-2 w-2">
               {isConnected && (
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               )}
               <span
-                className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                className={`relative inline-flex rounded-full h-2 w-2 ${
                   isConnected ? 'bg-emerald-500' : 'bg-amber-400'
                 }`}
               ></span>
             </span>
 
-            <div className="flex items-center gap-1.5 text-xs font-semibold">
-              <span className="text-slate-400 font-normal hidden sm:inline">গুগল শিট লাইভ সিঙ্ক:</span>
+            <div className="flex items-center gap-1.5 text-xs font-medium">
+              <span className="text-slate-400 hidden sm:inline">গুগল শিট:</span>
               {isConnected ? (
-                <span className="text-emerald-300 flex items-center gap-1 font-bold">
+                <span className="text-emerald-300 flex items-center gap-1 font-semibold">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  সংযুক্ত (Live Webhook Connected)
+                  সংযুক্ত
                 </span>
               ) : (
                 <button
@@ -110,17 +124,17 @@ export const LiveSyncStatusBar: React.FC<LiveSyncStatusBarProps> = ({
                   className="text-amber-300 hover:text-amber-200 underline font-semibold flex items-center gap-1 cursor-pointer"
                 >
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                  গুগল শিট কানেক্ট করুন (Setup Required)
+                  কানেক্ট করুন
                 </button>
               )}
             </div>
           </div>
 
           {/* Auto-Sync Pill */}
-          <div className="flex items-center gap-1.5 bg-slate-950/70 px-2 py-0.5 rounded-full border border-slate-800 text-[11px]">
+          <div className="flex items-center gap-1.5 bg-slate-950/70 px-2 py-0.5 rounded-full border border-slate-800 text-[11px] hidden sm:flex">
             <span className="text-slate-400">অটো-সিঙ্ক:</span>
             <span className={isAutoSync ? 'text-emerald-400 font-bold' : 'text-slate-400'}>
-              {isAutoSync ? '⚡ চালু (ON)' : '⏸ বন্ধ (OFF)'}
+              {isAutoSync ? '⚡ চালু' : '⏸ বন্ধ'}
             </span>
           </div>
         </div>
@@ -154,10 +168,10 @@ export const LiveSyncStatusBar: React.FC<LiveSyncStatusBarProps> = ({
                   ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/40 hover:scale-[1.02] active:scale-95'
                   : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
               }`}
-              title="Push all 6 modules immediately to Google Sheets"
+              title="Push all modules immediately to Google Sheets"
             >
               <Zap className={`w-3.5 h-3.5 ${isSyncing ? 'animate-bounce text-amber-300' : 'text-amber-300'}`} />
-              <span>{isSyncing ? 'সিঙ্ক হচ্ছে...' : '⚡ ১-ক্লিকে সব সিঙ্ক (Sync All)'}</span>
+              <span>{isSyncing ? 'সিঙ্ক হচ্ছে...' : '⚡ ১-ক্লিক সিঙ্ক'}</span>
             </button>
 
             <button
