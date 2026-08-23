@@ -180,8 +180,106 @@ export const StudentDatabaseView: React.FC<StudentDatabaseViewProps> = ({
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      {/* Mobile Student Cards (< md screens) */}
+      <div className="md:hidden space-y-3">
+        {filteredStudents.length === 0 ? (
+          <div className="bg-white rounded-2xl p-8 text-center text-slate-400 border border-slate-200">
+            কোন শিক্ষার্থী খুঁজে পাওয়া যায়নি (No students found)
+          </div>
+        ) : (
+          filteredStudents.map((s) => (
+            <div
+              key={s.id}
+              className="bg-white rounded-2xl p-4 shadow-xs border border-slate-200 space-y-3"
+            >
+              {/* Header: ID, Name & Status */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200/60">
+                      {s.id}
+                    </span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-semibold">
+                      Class: {s.studentClass} ({s.section})
+                    </span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-bold border border-amber-200">
+                      Roll #{s.rollNo}
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-sm mt-1">{s.name}</h3>
+                  <p className="text-xs text-slate-500">{s.nameBn}</p>
+                </div>
+
+                <span
+                  className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${
+                    s.status === 'Active'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  {s.status}
+                </span>
+              </div>
+
+              {/* Parents & Blood Group info */}
+              <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                <div>
+                  <span className="text-slate-400 block text-[10px]">পিতার নাম:</span>
+                  <span className="font-medium text-slate-700 truncate block">{s.fatherName}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px]">রক্তের গ্রুপ:</span>
+                  <span className="inline-flex items-center gap-0.5 text-rose-700 font-bold text-[11px]">
+                    <Droplet className="w-3 h-3" /> {s.bloodGroup}
+                  </span>
+                </div>
+              </div>
+
+              {/* Phone & Actions */}
+              <div className="flex items-center justify-between pt-1 border-t border-slate-100 gap-2">
+                <a
+                  href={`tel:${s.contactNumber}`}
+                  className="flex items-center gap-1 text-xs text-blue-600 font-mono font-medium hover:underline bg-blue-50/70 px-2.5 py-1 rounded-lg"
+                >
+                  <Phone className="w-3 h-3" />
+                  <span>{s.contactNumber}</span>
+                </a>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => onViewProfile(s.id)}
+                    className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
+                    title="View Profile"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleOpenEditModal(s)}
+                    className="p-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer"
+                    title="Edit Student"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Are you sure you want to delete ${s.name} (${s.id})?`)) {
+                        onDeleteStudent(s.id);
+                      }
+                    }}
+                    className="p-2 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-colors cursor-pointer"
+                    title="Delete Student"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop / Tablet Table (>= md screens) */}
+      <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse">
             <thead>

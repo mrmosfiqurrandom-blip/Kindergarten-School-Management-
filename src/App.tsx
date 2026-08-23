@@ -26,9 +26,11 @@ import { exportKindergartenExcelWorkbook } from './utils/excelGenerator';
 import {
   getStoredWebhookUrl,
   getStoredAutoSync,
+  getStoredLastSync,
   sendToGoogleSheets,
   addSyncLog,
 } from './utils/googleSheetsSync';
+import { LiveSyncStatusBar } from './components/LiveSyncStatusBar';
 import { FileSpreadsheet, Code2, Heart, Zap } from 'lucide-react';
 
 export default function App() {
@@ -49,12 +51,72 @@ export default function App() {
   const [isGoogleSheetsModalOpen, setIsGoogleSheetsModalOpen] = useState(false);
   const [isGoogleSheetsConnected, setIsGoogleSheetsConnected] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [isSyncingGlobal, setIsSyncingGlobal] = useState(false);
+  const [lastSyncTimestamp, setLastSyncTimestamp] = useState<string | null>(getStoredLastSync());
   const [autoSyncNotification, setAutoSyncNotification] = useState<string | null>(null);
 
   useEffect(() => {
     const url = getStoredWebhookUrl();
     setIsGoogleSheetsConnected(Boolean(url && url.startsWith('http')));
-  }, [isGoogleSheetsModalOpen]);
+  }, [isGoogleSheetsModalOpen, lastSyncTimestamp]);
+
+  // Master 1-Click Sync All
+  const handleManualSyncAll = async () => {
+    const url = getStoredWebhookUrl();
+    if (!url) {
+      setIsGoogleSheetsModalOpen(true);
+      return;
+    }
+
+    setIsSyncingGlobal(true);
+    setAutoSyncNotification('গুগল শিটে সমস্ত ডেটা সিঙ্ক হচ্ছে...');
+
+    const payload = {
+      action: 'sync_all' as const,
+      timestamp: new Date().toISOString(),
+      schoolName: schoolInfo.name,
+      students,
+      fees,
+      staff: staffList,
+      expenses,
+      attendance,
+      results,
+    };
+
+    try {
+      const res = await sendToGoogleSheets(url, payload);
+      const totalRecs =
+        students.length +
+        fees.length +
+        staffList.length +
+        expenses.length +
+        attendance.length +
+        results.length;
+
+      addSyncLog({
+        type: 'Manual 1-Click Sync (All)',
+        status: 'success',
+        message: res.message,
+        recordsCount: totalRecs,
+      });
+
+      const now = new Date().toISOString();
+      setLastSyncTimestamp(now);
+      setIsGoogleSheetsConnected(true);
+      setAutoSyncNotification(`✅ সফলভাবে ${totalRecs}টি রেকর্ড গুগল শিটে সিঙ্ক হয়েছে!`);
+      setTimeout(() => setAutoSyncNotification(null), 4000);
+    } catch (err: any) {
+      addSyncLog({
+        type: 'Manual 1-Click Sync (All)',
+        status: 'error',
+        message: err.message || 'Sync failed',
+      });
+      setAutoSyncNotification(`⚠️ সিঙ্ক ত্রুটি: ${err.message || 'কানেকশন চেক করুন'}`);
+      setTimeout(() => setAutoSyncNotification(null), 5000);
+    } finally {
+      setIsSyncingGlobal(false);
+    }
+  };
 
   // Background Auto-Sync Trigger
   const triggerAutoSync = async (moduleType: string, updatedData: any) => {
@@ -82,6 +144,8 @@ export default function App() {
         status: 'success',
         message: `${moduleType} ডেটা সফলভাবে গুগল শিটে পুশ হয়েছে।`,
       });
+      const now = new Date().toISOString();
+      setLastSyncTimestamp(now);
       setAutoSyncNotification(`✅ গুগল শিটে ${moduleType} অটো-সিঙ্ক সম্পন্ন!`);
       setTimeout(() => setAutoSyncNotification(null), 3500);
     } catch (e: any) {
@@ -248,7 +312,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100/90 text-slate-900 flex flex-col font-sans antialiased">
+    <div className="min-h-screen bg-slate-100/90 text-slate-900 flex flex-col font-sans antialiased pb-16 sm:pb-0">
       {/* Top Header & 10-Sheet Navigation */}
       <Navigation
         activeTab={activeTab}
@@ -261,16 +325,24 @@ export default function App() {
         onPrint={handlePrint}
       />
 
+      {/* Live Google Sheets Status Bar */}
+      <LiveSyncStatusBar
+        onOpenSyncModal={() => setIsGoogleSheetsModalOpen(true)}
+        onManualSyncAll={handleManualSyncAll}
+        isSyncing={isSyncingGlobal}
+        lastSyncTimestamp={lastSyncTimestamp}
+      />
+
       {/* Auto-Sync Toast Notification */}
       {autoSyncNotification && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-950 text-white px-4 py-2.5 rounded-xl shadow-2xl border border-emerald-500/40 text-xs font-semibold flex items-center gap-2.5 animate-bounce">
+        <div className="fixed bottom-16 sm:bottom-6 right-4 sm:right-6 z-50 bg-slate-950 text-white px-4 py-2.5 rounded-xl shadow-2xl border border-emerald-500/40 text-xs font-semibold flex items-center gap-2.5 animate-bounce">
           <Zap className="w-4 h-4 text-emerald-400 animate-pulse" />
           <span>{autoSyncNotification}</span>
         </div>
       )}
 
       {/* Main Content Viewport */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 lg:p-8">
         {activeTab === 'dashboard' && (
           <DashboardView
             students={students}
