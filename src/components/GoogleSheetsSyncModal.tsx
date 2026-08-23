@@ -55,6 +55,8 @@ interface GoogleSheetsSyncModalProps {
   attendance: AttendanceRecord[];
   results: AcademicResult[];
   onSyncComplete?: () => void;
+  onRestoreBackup?: (backupData: any) => void;
+  onResetToDemoData?: () => void;
 }
 
 export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
@@ -68,8 +70,10 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
   attendance,
   results,
   onSyncComplete,
+  onRestoreBackup,
+  onResetToDemoData,
 }) => {
-  const [activeTab, setActiveTab] = useState<'sync' | 'code' | 'guide' | 'logs'>('sync');
+  const [activeTab, setActiveTab] = useState<'sync' | 'code' | 'guide' | 'logs' | 'backup'>('sync');
   const [webhookUrl, setWebhookUrl] = useState('');
   const [autoSync, setAutoSync] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
@@ -94,6 +98,74 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
   if (!isOpen) return null;
 
   const scriptCode = generateGoogleAppsScriptCode(schoolInfo.name);
+
+  // Backup Download Trigger
+  const handleDownloadBackup = () => {
+    const backupJson = JSON.stringify(
+      {
+        appName: 'Sunshine Kindergarten School Management',
+        exportedAt: new Date().toISOString(),
+        version: '2.5',
+        schoolInfo,
+        students,
+        fees,
+        staff: staffList,
+        expenses,
+        attendance,
+        results,
+      },
+      null,
+      2
+    );
+
+    const blob = new Blob([backupJson], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kindergarten_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setSyncStatus({
+      type: 'success',
+      message: '✅ সম্পূর্ণ ডেটাবেজ ব্যাকআপ ফাইল ডাউনলোড সম্পন্ন হয়েছে!',
+    });
+  };
+
+  // Restore Backup Trigger
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const parsed = JSON.parse(evt.target?.result as string);
+        if (parsed.students && Array.isArray(parsed.students)) {
+          if (onRestoreBackup) {
+            onRestoreBackup(parsed);
+            setSyncStatus({
+              type: 'success',
+              message: '🎉 ব্যাকআপ ফাইল থেকে সকল ডেটা সফলভাবে পুনরুদ্ধার করা হয়েছে!',
+            });
+          }
+        } else {
+          setSyncStatus({
+            type: 'error',
+            message: 'ভুল ফরম্যাটের ব্যাকআপ ফাইল। দয়া করে সঠিক JSON ব্যাকআপ ফাইল নির্বাচন করুন।',
+          });
+        }
+      } catch (err) {
+        setSyncStatus({
+          type: 'error',
+          message: 'ব্যাকআপ ফাইলটি পার্স করা সম্ভব হয়নি।',
+        });
+      }
+    };
+    reader.readAsText(file);
+  };
 
   const handleSaveUrl = () => {
     setStoredWebhookUrl(webhookUrl);
@@ -318,6 +390,17 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
           >
             <Clock className="w-3.5 h-3.5" />
             <span>সিঙ্ক হিস্ট্রি ({syncLogs.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('backup')}
+            className={`px-4 py-2.5 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+              activeTab === 'backup'
+                ? 'border-rose-500 text-rose-400 bg-rose-500/10'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Database className="w-3.5 h-3.5" />
+            <span>লোকাল স্টোরেজ ও ব্যাকআপ</span>
           </button>
         </div>
 
@@ -705,6 +788,116 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Tab 5: Local Storage & Offline Backup */}
+        {activeTab === 'backup' && (
+          <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-1 text-xs">
+            <div className="bg-slate-950/70 rounded-xl p-4 border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-white text-sm flex items-center gap-2">
+                  <Database className="w-4 h-4 text-emerald-400" />
+                  <span>ব্রাউজার লোকাল স্টোরেজ স্ট্যাটাস (Auto-Persistence)</span>
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
+                  🟢 সক্রিয় (Active)
+                </span>
+              </div>
+              <p className="text-slate-400 leading-relaxed">
+                আপনার ব্রাউজারে স্বয়ংক্রিয়ভাবে সমস্ত ডাটা সেভ হচ্ছে। পেজ রিলোড বা রিফ্রেশ দিলেও কোনো নতুন শিক্ষার্থী, ফি বা খরচ মুছে যাবে না।
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2">
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="text-slate-400 block text-[10px]">শিক্ষার্থী:</span>
+                  <span className="font-bold text-white text-sm">{students.length} জন</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="text-slate-400 block text-[10px]">ফি রেকর্ড:</span>
+                  <span className="font-bold text-emerald-400 text-sm">{fees.length} টি</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="text-slate-400 block text-[10px]">শিক্ষক/স্টাফ:</span>
+                  <span className="font-bold text-indigo-400 text-sm">{staffList.length} জন</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="text-slate-400 block text-[10px]">খরচের এন্ট্রি:</span>
+                  <span className="font-bold text-rose-400 text-sm">{expenses.length} টি</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="text-slate-400 block text-[10px]">উপস্থিতি রেকর্ড:</span>
+                  <span className="font-bold text-amber-400 text-sm">{attendance.length} টি</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="text-slate-400 block text-[10px]">রেজাল্ট মার্কশিট:</span>
+                  <span className="font-bold text-blue-400 text-sm">{results.length} টি</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions: Download Backup & Restore */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-slate-950/70 p-4 rounded-xl border border-slate-800 flex flex-col justify-between space-y-3">
+                <div>
+                  <div className="font-bold text-white text-sm flex items-center gap-1.5">
+                    <Download className="w-4 h-4 text-blue-400" />
+                    <span>ব্যাকআপ ফাইল ডাউনলোড (Export JSON)</span>
+                  </div>
+                  <p className="text-slate-400 text-[11px] mt-1">
+                    সম্পূর্ণ ডাটাবেজ একটি ফাইলে অফলাইনে সংরক্ষণ করুন যাতে যেকোনো কম্পিউটারে রিস্টোর করা যায়।
+                  </p>
+                </div>
+                <button
+                  onClick={handleDownloadBackup}
+                  className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download Backup File (.json)</span>
+                </button>
+              </div>
+
+              <div className="bg-slate-950/70 p-4 rounded-xl border border-slate-800 flex flex-col justify-between space-y-3">
+                <div>
+                  <div className="font-bold text-white text-sm flex items-center gap-1.5">
+                    <Layers className="w-4 h-4 text-emerald-400" />
+                    <span>ব্যাকআপ থেকে রিস্টোর (Import JSON)</span>
+                  </div>
+                  <p className="text-slate-400 text-[11px] mt-1">
+                    পূর্বে ডাউনলোড করা .json ব্যাকআপ ফাইল আপলোড করে সমস্ত ডাটা তাৎক্ষণিক লোড করুন।
+                  </p>
+                </div>
+                <label className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                  <Layers className="w-4 h-4 text-emerald-400" />
+                  <span>Upload & Restore Backup</span>
+                  <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
+                </label>
+              </div>
+            </div>
+
+            {/* Reset to Demo Data */}
+            <div className="bg-rose-950/20 p-4 rounded-xl border border-rose-500/30 flex items-center justify-between gap-4">
+              <div>
+                <div className="font-bold text-rose-300">ডিফল্ট স্যাম্পল ডেটায় ফেরত যান (Reset Data)</div>
+                <p className="text-slate-400 text-[11px] mt-0.5">
+                  লোকাল মেমোরি খালি করে সফটওয়্যারের মূল ডেমো ডেটা পুনরায় লোড করবে।
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      'আপনি কি নিশ্চিত যে আপনি লোকাল ডাটা মুছে মূল ডেমো ডেটায় ফিরে যেতে চান? (সব সংরক্ষিত পরিবর্তন মুছে যাবে)'
+                    )
+                  ) {
+                    if (onResetToDemoData) onResetToDemoData();
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white font-bold text-xs shrink-0 cursor-pointer"
+              >
+                Reset to Demo
+              </button>
+            </div>
           </div>
         )}
 

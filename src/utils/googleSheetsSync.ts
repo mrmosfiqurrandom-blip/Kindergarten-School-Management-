@@ -107,6 +107,65 @@ export const getStoredSyncLogs = (): SyncLog[] => {
   }
 };
 
+export const loadStoredData = <T>(key: string, defaultValue: T): T => {
+  if (typeof window === 'undefined') return defaultValue;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return defaultValue;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(defaultValue) && !Array.isArray(parsed)) return defaultValue;
+    return parsed;
+  } catch (e) {
+    console.warn(`Error loading ${key} from localStorage:`, e);
+    return defaultValue;
+  }
+};
+
+export const saveStoredData = <T>(key: string, data: T): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {
+    console.error(`Error saving ${key} to localStorage:`, e);
+  }
+};
+
+export const resetAllStoredSchoolData = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(STORAGE_KEYS.LOCAL_STUDENTS);
+    localStorage.removeItem(STORAGE_KEYS.LOCAL_FEES);
+    localStorage.removeItem(STORAGE_KEYS.LOCAL_STAFF);
+    localStorage.removeItem(STORAGE_KEYS.LOCAL_EXPENSES);
+    localStorage.removeItem(STORAGE_KEYS.LOCAL_ATTENDANCE);
+    localStorage.removeItem(STORAGE_KEYS.LOCAL_RESULTS);
+    localStorage.removeItem(STORAGE_KEYS.LOCAL_SCHOOL);
+  } catch (e) {
+    console.error('Failed to reset localStorage data:', e);
+  }
+};
+
+export const exportAllDataAsBackup = (allData: {
+  schoolInfo: SchoolInfo;
+  students: Student[];
+  fees: FeeRecord[];
+  staff: Staff[];
+  expenses: Expense[];
+  attendance: AttendanceRecord[];
+  results: AcademicResult[];
+}): string => {
+  return JSON.stringify(
+    {
+      exportedAt: new Date().toISOString(),
+      appName: 'Sunshine Kindergarten School Management',
+      version: '2.5',
+      ...allData,
+    },
+    null,
+    2
+  );
+};
+
 export const addSyncLog = (log: Omit<SyncLog, 'id' | 'timestamp'>) => {
   if (typeof window === 'undefined') return;
   try {

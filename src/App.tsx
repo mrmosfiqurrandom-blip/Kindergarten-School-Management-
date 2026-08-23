@@ -29,18 +29,36 @@ import {
   getStoredLastSync,
   sendToGoogleSheets,
   addSyncLog,
+  loadStoredData,
+  saveStoredData,
+  STORAGE_KEYS,
+  resetAllStoredSchoolData,
 } from './utils/googleSheetsSync';
 import { LiveSyncStatusBar } from './components/LiveSyncStatusBar';
 import { FileSpreadsheet, Code2, Heart, Zap } from 'lucide-react';
 
 export default function App() {
-  const [schoolInfo] = useState<SchoolInfo>(initialSchoolInfo);
-  const [students, setStudents] = useState<Student[]>(initialStudents);
-  const [staffList, setStaffList] = useState<Staff[]>(initialStaffList);
-  const [fees, setFees] = useState<FeeRecord[]>(initialFeeRecords);
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>(initialAttendance);
-  const [results, setResults] = useState<AcademicResult[]>(initialAcademicResults);
+  const [schoolInfo, setSchoolInfo] = useState<SchoolInfo>(() =>
+    loadStoredData(STORAGE_KEYS.LOCAL_SCHOOL, initialSchoolInfo)
+  );
+  const [students, setStudents] = useState<Student[]>(() =>
+    loadStoredData(STORAGE_KEYS.LOCAL_STUDENTS, initialStudents)
+  );
+  const [staffList, setStaffList] = useState<Staff[]>(() =>
+    loadStoredData(STORAGE_KEYS.LOCAL_STAFF, initialStaffList)
+  );
+  const [fees, setFees] = useState<FeeRecord[]>(() =>
+    loadStoredData(STORAGE_KEYS.LOCAL_FEES, initialFeeRecords)
+  );
+  const [expenses, setExpenses] = useState<Expense[]>(() =>
+    loadStoredData(STORAGE_KEYS.LOCAL_EXPENSES, initialExpenses)
+  );
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>(() =>
+    loadStoredData(STORAGE_KEYS.LOCAL_ATTENDANCE, initialAttendance)
+  );
+  const [results, setResults] = useState<AcademicResult[]>(() =>
+    loadStoredData(STORAGE_KEYS.LOCAL_RESULTS, initialAcademicResults)
+  );
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [selectedStudentForProfile, setSelectedStudentForProfile] = useState<string>('KS-101');
@@ -54,6 +72,35 @@ export default function App() {
   const [isSyncingGlobal, setIsSyncingGlobal] = useState(false);
   const [lastSyncTimestamp, setLastSyncTimestamp] = useState<string | null>(getStoredLastSync());
   const [autoSyncNotification, setAutoSyncNotification] = useState<string | null>(null);
+
+  // Auto-Save all data locally whenever state updates so page refresh never loses data
+  useEffect(() => {
+    saveStoredData(STORAGE_KEYS.LOCAL_STUDENTS, students);
+  }, [students]);
+
+  useEffect(() => {
+    saveStoredData(STORAGE_KEYS.LOCAL_FEES, fees);
+  }, [fees]);
+
+  useEffect(() => {
+    saveStoredData(STORAGE_KEYS.LOCAL_STAFF, staffList);
+  }, [staffList]);
+
+  useEffect(() => {
+    saveStoredData(STORAGE_KEYS.LOCAL_EXPENSES, expenses);
+  }, [expenses]);
+
+  useEffect(() => {
+    saveStoredData(STORAGE_KEYS.LOCAL_ATTENDANCE, attendance);
+  }, [attendance]);
+
+  useEffect(() => {
+    saveStoredData(STORAGE_KEYS.LOCAL_RESULTS, results);
+  }, [results]);
+
+  useEffect(() => {
+    saveStoredData(STORAGE_KEYS.LOCAL_SCHOOL, schoolInfo);
+  }, [schoolInfo]);
 
   useEffect(() => {
     const url = getStoredWebhookUrl();
@@ -311,6 +358,33 @@ export default function App() {
     window.print();
   };
 
+  // Restore from backup JSON
+  const handleRestoreBackup = (data: any) => {
+    if (data.students && Array.isArray(data.students)) setStudents(data.students);
+    if (data.fees && Array.isArray(data.fees)) setFees(data.fees);
+    if (data.staff && Array.isArray(data.staff)) setStaffList(data.staff);
+    if (data.expenses && Array.isArray(data.expenses)) setExpenses(data.expenses);
+    if (data.attendance && Array.isArray(data.attendance)) setAttendance(data.attendance);
+    if (data.results && Array.isArray(data.results)) setResults(data.results);
+    if (data.schoolInfo) setSchoolInfo(data.schoolInfo);
+    setAutoSyncNotification('ব্যাকআপ থেকে সকল তথ্য পুনরুদ্ধার করা হয়েছে!');
+    setTimeout(() => setAutoSyncNotification(null), 4000);
+  };
+
+  // Reset to original demo sample data
+  const handleResetToDemoData = () => {
+    resetAllStoredSchoolData();
+    setStudents(initialStudents);
+    setFees(initialFeeRecords);
+    setStaffList(initialStaffList);
+    setExpenses(initialExpenses);
+    setAttendance(initialAttendance);
+    setResults(initialAcademicResults);
+    setSchoolInfo(initialSchoolInfo);
+    setAutoSyncNotification('সকল তথ্য ডিফল্ট ডেমো ডেটায় রিসেট করা হয়েছে!');
+    setTimeout(() => setAutoSyncNotification(null), 4000);
+  };
+
   return (
     <div className="min-h-screen bg-slate-100/90 text-slate-900 flex flex-col font-sans antialiased pb-16 sm:pb-0">
       {/* Top Header & 10-Sheet Navigation */}
@@ -375,6 +449,8 @@ export default function App() {
             schoolInfo={schoolInfo}
             selectedStudentId={selectedStudentForProfile}
             onNavigate={(tab) => setActiveTab(tab)}
+            onUpdateStudent={handleUpdateStudent}
+            onSelectStudentForReceipt={handleGenerateReceipt}
           />
         )}
 
@@ -494,6 +570,8 @@ export default function App() {
         expenses={expenses}
         attendance={attendance}
         results={results}
+        onRestoreBackup={handleRestoreBackup}
+        onResetToDemoData={handleResetToDemoData}
         onSyncComplete={() => {
           const url = getStoredWebhookUrl();
           setIsGoogleSheetsConnected(Boolean(url && url.startsWith('http')));
