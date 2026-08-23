@@ -8,7 +8,7 @@ import {
   initialAttendance,
   initialAcademicResults,
 } from './data/initialData';
-import { Student, Staff, FeeRecord, Expense, AcademicResult, SchoolInfo, AttendanceRecord } from './types';
+import { Student, Staff, FeeRecord, Expense, AcademicResult, SchoolInfo, AttendanceRecord, User } from './types';
 import { Navigation, ActiveTab } from './components/Navigation';
 import { DashboardView } from './components/DashboardView';
 import { StudentDatabaseView } from './components/StudentDatabaseView';
@@ -22,6 +22,8 @@ import { ExpenseTrackerView } from './components/ExpenseTrackerView';
 import { AcademicResultsView } from './components/AcademicResultsView';
 import { PythonScriptModal } from './components/PythonScriptModal';
 import { GoogleSheetsSyncModal } from './components/GoogleSheetsSyncModal';
+import { LoginView } from './components/LoginView';
+import { UserProfileModal } from './components/UserProfileModal';
 import { exportKindergartenExcelWorkbook } from './utils/excelGenerator';
 import {
   getStoredWebhookUrl,
@@ -34,10 +36,17 @@ import {
   STORAGE_KEYS,
   resetAllStoredSchoolData,
 } from './utils/googleSheetsSync';
+import { getStoredCurrentUser, logoutUser, INITIAL_USERS } from './utils/auth';
 import { LiveSyncStatusBar } from './components/LiveSyncStatusBar';
 import { FileSpreadsheet, Code2, Heart, Zap } from 'lucide-react';
 
 export default function App() {
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    return getStoredCurrentUser() || INITIAL_USERS[0];
+  });
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo>(() =>
     loadStoredData(STORAGE_KEYS.LOCAL_SCHOOL, initialSchoolInfo)
   );
@@ -72,6 +81,34 @@ export default function App() {
   const [isSyncingGlobal, setIsSyncingGlobal] = useState(false);
   const [lastSyncTimestamp, setLastSyncTimestamp] = useState<string | null>(getStoredLastSync());
   const [autoSyncNotification, setAutoSyncNotification] = useState<string | null>(null);
+
+  // If role is parent, automatically select their linked student if present
+  const handleLoginSuccess = (user: User) => {
+    setCurrentUser(user);
+    if (user.role === 'parent' && user.linkedStudentId) {
+      setSelectedStudentForProfile(user.linkedStudentId);
+      setSelectedStudentForReceipt(user.linkedStudentId);
+      setActiveTab('profile');
+    }
+    setAutoSyncNotification(`স্বাগতম, ${user.name}! (${user.roleTitle})`);
+    setTimeout(() => setAutoSyncNotification(null), 4000);
+  };
+
+  const handleLogout = () => {
+    logoutUser();
+    setCurrentUser(null);
+  };
+
+  const handleSwitchUser = (newUser: User) => {
+    setCurrentUser(newUser);
+    if (newUser.role === 'parent' && newUser.linkedStudentId) {
+      setSelectedStudentForProfile(newUser.linkedStudentId);
+      setSelectedStudentForReceipt(newUser.linkedStudentId);
+      setActiveTab('profile');
+    }
+    setAutoSyncNotification(`ইউজার স্যুইচ করা হয়েছে: ${newUser.name} (${newUser.roleTitle})`);
+    setTimeout(() => setAutoSyncNotification(null), 4000);
+  };
 
   // Auto-Save all data locally whenever state updates so page refresh never loses data
   useEffect(() => {
@@ -385,6 +422,11 @@ export default function App() {
     setTimeout(() => setAutoSyncNotification(null), 4000);
   };
 
+  // If user is not logged in, show Login Screen
+  if (!currentUser) {
+    return <LoginView schoolInfo={schoolInfo} onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-100/90 text-slate-900 flex flex-col font-sans antialiased pb-16 sm:pb-0">
       {/* Top Header & 10-Sheet Navigation */}
@@ -392,6 +434,9 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         schoolInfo={schoolInfo}
+        currentUser={currentUser}
+        onOpenProfileModal={() => setIsProfileModalOpen(true)}
+        onLogout={handleLogout}
         onExportExcel={handleExportExcel}
         onOpenPythonScript={() => setIsPythonModalOpen(true)}
         onOpenGoogleSheetsSync={() => setIsGoogleSheetsModalOpen(true)}
@@ -577,6 +622,17 @@ export default function App() {
           setIsGoogleSheetsConnected(Boolean(url && url.startsWith('http')));
         }}
       />
+
+      {/* User Profile & Security Modal */}
+      {currentUser && (
+        <UserProfileModal
+          currentUser={currentUser}
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          onLogout={handleLogout}
+          onSwitchUser={handleSwitchUser}
+        />
+      )}
     </div>
   );
 }

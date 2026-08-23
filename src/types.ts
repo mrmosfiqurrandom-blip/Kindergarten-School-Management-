@@ -89,13 +89,30 @@ export interface Expense {
   approvedBy: string;
 }
 
+export type UserRole = 'admin' | 'principal' | 'teacher' | 'accountant' | 'parent';
+
+export interface User {
+  id: string;
+  name: string;
+  nameBn?: string;
+  email: string;
+  username: string;
+  role: UserRole;
+  roleTitle: string;
+  avatarUrl?: string;
+  phone?: string;
+  designation?: string;
+  linkedStudentId?: string; // If role is 'parent'
+  permissions: string[];
+}
+
 export interface AcademicResult {
   id: string;
   studentId: string;
   studentName: string;
   studentClass: StudentClass;
   rollNo: number;
-  term: '1st Term' | '2nd Term' | 'Annual Exam';
+  term: '1st Term' | '2nd Term' | 'Annual Exam' | '1st Term Evaluation' | 'Final Evaluation' | string;
   bangla: number;
   english: number;
   math: number;

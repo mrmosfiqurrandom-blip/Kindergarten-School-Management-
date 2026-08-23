@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Receipt,
   Printer,
@@ -32,6 +32,18 @@ export const FeeReceiptView: React.FC<FeeReceiptViewProps> = ({
   const [selectedMonth, setSelectedMonth] = useState<string>(
     initialMonth || 'January 2025'
   );
+
+  useEffect(() => {
+    if (initialStudentId) {
+      setSelectedStudentId(initialStudentId);
+    }
+  }, [initialStudentId]);
+
+  useEffect(() => {
+    if (initialMonth) {
+      setSelectedMonth(initialMonth);
+    }
+  }, [initialMonth]);
 
   const student = students.find((s) => s.id === selectedStudentId) || students[0];
   const feeRecord =

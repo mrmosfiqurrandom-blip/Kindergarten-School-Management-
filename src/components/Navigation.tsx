@@ -19,7 +19,7 @@ import {
   Zap,
   ChevronRight,
 } from 'lucide-react';
-import { SchoolInfo } from '../types';
+import { SchoolInfo, User } from '../types';
 
 export type ActiveTab =
   | 'dashboard'
@@ -37,6 +37,9 @@ interface NavigationProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   schoolInfo: SchoolInfo;
+  currentUser?: User | null;
+  onOpenProfileModal?: () => void;
+  onLogout?: () => void;
   onExportExcel: () => void;
   onOpenPythonScript: () => void;
   onOpenGoogleSheetsSync: () => void;
@@ -48,6 +51,9 @@ export const Navigation: React.FC<NavigationProps> = ({
   activeTab,
   setActiveTab,
   schoolInfo,
+  currentUser,
+  onOpenProfileModal,
+  onLogout,
   onExportExcel,
   onOpenPythonScript,
   onOpenGoogleSheetsSync,
@@ -73,6 +79,23 @@ export const Navigation: React.FC<NavigationProps> = ({
     setActiveTab(tabId);
     setIsMobileMenuOpen(false);
   };
+
+  const getRoleTag = (role?: string) => {
+    switch (role) {
+      case 'admin':
+        return { label: 'Admin', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40', icon: '👑' };
+      case 'teacher':
+        return { label: 'Teacher', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40', icon: '👨‍🏫' };
+      case 'accountant':
+        return { label: 'Accounts', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', icon: '💼' };
+      case 'parent':
+        return { label: 'Parent', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40', icon: '👨‍👩‍👧' };
+      default:
+        return { label: 'Staff', color: 'bg-slate-700 text-slate-300 border-slate-600', icon: '👤' };
+    }
+  };
+
+  const roleInfo = getRoleTag(currentUser?.role);
 
   return (
     <>
@@ -149,10 +172,47 @@ export const Navigation: React.FC<NavigationProps> = ({
             >
               <Printer className="w-3.5 h-3.5" />
             </button>
+
+            {/* User Profile Badge & Security */}
+            {currentUser && (
+              <div className="flex items-center gap-1.5 pl-2 border-l border-slate-800">
+                <button
+                  onClick={onOpenProfileModal}
+                  className="flex items-center gap-2 py-1 px-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700 text-left transition-all cursor-pointer group shadow-sm"
+                  title="অ্যাকাউন্ট ও নিরাপত্তা সেটিংস"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-xs font-bold text-white shadow-inner">
+                    {currentUser.name.charAt(0)}
+                  </div>
+                  <div className="min-w-0 hidden md:block">
+                    <div className="text-xs font-bold text-slate-100 group-hover:text-white truncate max-w-[110px]">
+                      {currentUser.name.split(' ')[0]}
+                    </div>
+                    <div className="text-[10px] text-slate-400 truncate max-w-[110px]">
+                      {currentUser.roleTitle.split(' ')[0]}
+                    </div>
+                  </div>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold border ${roleInfo.color}`}>
+                    {roleInfo.icon} {roleInfo.label}
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Mobile Right Controls: Sync Quick Button + Mobile Menu Toggle */}
+          {/* Mobile Right Controls: Sync Quick Button + User Profile + Mobile Menu Toggle */}
           <div className="flex sm:hidden items-center gap-1.5">
+            {currentUser && (
+              <button
+                onClick={onOpenProfileModal}
+                className="p-1.5 rounded-lg bg-slate-800 text-amber-300 border border-slate-700 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                title="User Profile"
+              >
+                <span>{roleInfo.icon}</span>
+                <span className="text-[10px] font-semibold">{currentUser.name.split(' ')[0]}</span>
+              </button>
+            )}
+
             <button
               onClick={onOpenGoogleSheetsSync}
               className={`p-2 rounded-lg text-xs font-semibold border ${

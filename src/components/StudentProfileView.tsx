@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   UserCheck,
   Search,
@@ -69,6 +69,12 @@ export const StudentProfileView: React.FC<StudentProfileViewProps> = ({
   const [selectedId, setSelectedId] = useState<string>(
     initialSelectedId || (students[0] ? students[0].id : 'KS-101')
   );
+
+  useEffect(() => {
+    if (initialSelectedId) {
+      setSelectedId(initialSelectedId);
+    }
+  }, [initialSelectedId]);
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
