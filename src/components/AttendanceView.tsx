@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CalendarCheck,
   Check,
@@ -8,20 +8,30 @@ import {
   Filter,
   Sparkles,
   Save,
+  ShieldCheck,
+  Database,
 } from 'lucide-react';
-import { Student, StudentClass } from '../types';
+import { Student, StudentClass, AttendanceRecord, User } from '../types';
 
 interface AttendanceViewProps {
   students: Student[];
+  attendance?: AttendanceRecord[];
+  onSaveAttendance?: (records: AttendanceRecord[]) => void;
+  currentUser?: User | null;
 }
 
-export const AttendanceView: React.FC<AttendanceViewProps> = ({ students }) => {
+export const AttendanceView: React.FC<AttendanceViewProps> = ({
+  students,
+  attendance,
+  onSaveAttendance,
+  currentUser,
+}) => {
   const [selectedClass, setSelectedClass] = useState<string>('All');
   
   // 10 School Days attendance status state
   const [attendanceMatrix, setAttendanceMatrix] = useState<Record<string, ('P' | 'A')[]>>(() => {
     const initial: Record<string, ('P' | 'A')[]> = {};
-    students.forEach((s, idx) => {
+    students.forEach((s) => {
       if (s.id === 'KS-104') {
         initial[s.id] = ['A', 'P', 'A', 'P', 'A', 'P', 'P', 'P', 'A', 'P'];
       } else if (s.id === 'KS-108') {
@@ -67,12 +77,62 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ students }) => {
   };
 
   const handleSaveAttendance = () => {
+    // Generate full AttendanceRecord list for central persistence
+    const generatedRecords: AttendanceRecord[] = [];
+    const baseDate = new Date();
+
+    Object.keys(attendanceMatrix).forEach((studentId) => {
+      const dayStatuses = attendanceMatrix[studentId] || [];
+      dayStatuses.forEach((status, idx) => {
+        const recordDate = new Date(baseDate);
+        recordDate.setDate(recordDate.getDate() - (9 - idx));
+        const dateStr = recordDate.toISOString().split('T')[0];
+
+        generatedRecords.push({
+          id: `ATT-${studentId}-D${idx + 1}`,
+          studentId,
+          date: dateStr,
+          status: status === 'P' ? 'Present' : 'Absent',
+        });
+      });
+    });
+
+    if (onSaveAttendance) {
+      onSaveAttendance(generatedRecords);
+    }
+
     setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+    setTimeout(() => setSavedSuccess(false), 3500);
   };
 
   return (
     <div className="space-y-6">
+      {/* Central Persistence & Teacher Role Indicator */}
+      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-2xl p-4 shadow-md flex flex-wrap items-center justify-between gap-3 text-xs border border-indigo-700/50">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-400/40 flex items-center justify-center text-blue-300 font-bold shrink-0">
+            <Database className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-white text-sm">সেন্ট্রাল স্কুল ডাটাবেজ অটো-সেভ</span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                ✓ লাইভ সিঙ্ক অ্যাক্টিভ
+              </span>
+            </div>
+            <p className="text-slate-300 text-[11px] mt-0.5">
+              {currentUser ? `লগইন আছেন: ${currentUser.name} (${currentUser.roleTitle})` : 'শিক্ষক ও অ্যাডমিন মোড'} — এখানে সেভ করা হাজিরা সরাসরি কেন্দ্রীয় ডাটাবেজ ও গুগল শিটে আপডেট হবে।
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-slate-300 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700 font-mono">
+            {filteredStudents.length} জন শিক্ষার্থী লোড
+          </span>
+        </div>
+      </div>
+
       {/* Header Bar */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
         <div>

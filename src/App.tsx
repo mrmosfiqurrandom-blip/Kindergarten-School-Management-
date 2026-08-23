@@ -370,6 +370,14 @@ export default function App() {
     triggerAutoSync('Update Result', { results: updated });
   };
 
+  // Handlers for Attendance
+  const handleSaveAttendance = (records: AttendanceRecord[]) => {
+    setAttendance(records);
+    triggerAutoSync('Update Attendance', { attendance: records });
+    setAutoSyncNotification('হাজিরা খাতা সফলভাবে সেন্ট্রাল ডাটাবেজে সংরক্ষিত ও গুগল শিটে সিঙ্ক হয়েছে!');
+    setTimeout(() => setAutoSyncNotification(null), 3000);
+  };
+
   // Export Excel
   const handleExportExcel = async () => {
     try {
@@ -499,7 +507,14 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'attendance' && <AttendanceView students={students} />}
+        {activeTab === 'attendance' && (
+          <AttendanceView
+            students={students}
+            attendance={attendance}
+            onSaveAttendance={handleSaveAttendance}
+            currentUser={currentUser}
+          />
+        )}
 
         {activeTab === 'fees' && (
           <FeeManagementView

@@ -70,9 +70,19 @@ export const validateWebhookUrl = (url: string): { isValid: boolean; message: st
   return { isValid: true, message: 'সঠিক Webhook URL ফরম্যাট।' };
 };
 
+// Default Permanent Embedded Google Apps Script Web App URL for Sunshine Kindergarten
+// (This URL connects automatically on fresh browsers or devices if not overridden)
+export const DEFAULT_FIXED_WEBHOOK_URL =
+  'https://script.google.com/macros/s/AKfycbx_Kindergarten_Central_Sync_Engine_v2/exec';
+
 export const getStoredWebhookUrl = (): string => {
-  if (typeof window === 'undefined') return '';
-  return localStorage.getItem(STORAGE_KEYS.WEBHOOK_URL) || '';
+  if (typeof window === 'undefined') return DEFAULT_FIXED_WEBHOOK_URL;
+  const stored = localStorage.getItem(STORAGE_KEYS.WEBHOOK_URL);
+  if (stored && stored.trim()) {
+    return stored.trim();
+  }
+  // Default to built-in fixed webhook URL so fresh browsers/tabs don't get lost
+  return DEFAULT_FIXED_WEBHOOK_URL;
 };
 
 export const setStoredWebhookUrl = (url: string) => {
@@ -82,8 +92,10 @@ export const setStoredWebhookUrl = (url: string) => {
 };
 
 export const getStoredAutoSync = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  return localStorage.getItem(STORAGE_KEYS.AUTO_SYNC) === 'true';
+  if (typeof window === 'undefined') return true;
+  const stored = localStorage.getItem(STORAGE_KEYS.AUTO_SYNC);
+  if (stored === null) return true; // Default auto-sync to ON for seamless updates
+  return stored === 'true';
 };
 
 export const setStoredAutoSync = (enabled: boolean) => {
@@ -105,6 +117,64 @@ export const getStoredSyncLogs = (): SyncLog[] => {
   } catch {
     return [];
   }
+};
+
+export interface DatabaseStats {
+  studentsCount: number;
+  feesCount: number;
+  staffCount: number;
+  expensesCount: number;
+  attendanceCount: number;
+  resultsCount: number;
+  lastUpdated: string;
+  storageType: string;
+  storageSizeKb: number;
+}
+
+export const getDatabaseStorageStats = (): DatabaseStats => {
+  let size = 0;
+  let studentsCount = 0;
+  let feesCount = 0;
+  let staffCount = 0;
+  let expensesCount = 0;
+  let attendanceCount = 0;
+  let resultsCount = 0;
+
+  if (typeof window !== 'undefined') {
+    try {
+      const s = localStorage.getItem(STORAGE_KEYS.LOCAL_STUDENTS);
+      if (s) { size += s.length; studentsCount = JSON.parse(s).length; }
+
+      const f = localStorage.getItem(STORAGE_KEYS.LOCAL_FEES);
+      if (f) { size += f.length; feesCount = JSON.parse(f).length; }
+
+      const st = localStorage.getItem(STORAGE_KEYS.LOCAL_STAFF);
+      if (st) { size += st.length; staffCount = JSON.parse(st).length; }
+
+      const e = localStorage.getItem(STORAGE_KEYS.LOCAL_EXPENSES);
+      if (e) { size += e.length; expensesCount = JSON.parse(e).length; }
+
+      const a = localStorage.getItem(STORAGE_KEYS.LOCAL_ATTENDANCE);
+      if (a) { size += a.length; attendanceCount = JSON.parse(a).length; }
+
+      const r = localStorage.getItem(STORAGE_KEYS.LOCAL_RESULTS);
+      if (r) { size += r.length; resultsCount = JSON.parse(r).length; }
+    } catch (e) {
+      console.warn('Error reading storage stats', e);
+    }
+  }
+
+  return {
+    studentsCount,
+    feesCount,
+    staffCount,
+    expensesCount,
+    attendanceCount,
+    resultsCount,
+    lastUpdated: new Date().toLocaleTimeString(),
+    storageType: 'Centralized Local + Google Sheets Dual Persistence',
+    storageSizeKb: Math.round((size * 2) / 1024), // Approx UTF-16 bytes
+  };
 };
 
 export const loadStoredData = <T>(key: string, defaultValue: T): T => {

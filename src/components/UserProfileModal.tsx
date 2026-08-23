@@ -237,8 +237,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
           {/* TAB 3: Switch Role */}
           {activeTab === 'switch' && (
-            <div className="space-y-2">
-              <p className="text-slate-400 text-xs mb-3">
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-indigo-200 text-[11px] leading-relaxed">
+                <span className="font-bold block text-indigo-300 mb-1">🏢 সেন্ট্রাল ডাটাবেজ তথ্য:</span>
+                আপনি টিচার, অ্যাডমিন বা যেকোনো অ্যাকাউন্টে সুইচ করলেও স্কুলের সকল ডেটা একই কেন্দ্রীয় স্টোরেজে সংরক্ষিত থাকে। টিচার হিসেবে যে হাজিরা বা মার্কস এন্ট্রি করবেন, তা অ্যাডমিন বা একাউন্ট্যান্ট সাথে সাথে দেখতে পাবেন।
+              </div>
+
+              <p className="text-slate-400 text-xs">
                 নিচের যেকোনো ব্যবহারকারী প্রোফাইলে সাথে সাথে সুইচ করতে ক্লিক করুন:
               </p>
               <div className="space-y-2">

@@ -20,6 +20,10 @@ import {
   Globe,
   Database,
   Link2,
+  Lock,
+  Users,
+  HardDrive,
+  CheckCircle,
 } from 'lucide-react';
 import {
   getStoredWebhookUrl,
@@ -31,6 +35,9 @@ import {
   addSyncLog,
   sendToGoogleSheets,
   generateGoogleAppsScriptCode,
+  DEFAULT_FIXED_WEBHOOK_URL,
+  getDatabaseStorageStats,
+  DatabaseStats,
   SyncLog,
   SyncPayload,
 } from '../utils/googleSheetsSync';
@@ -73,12 +80,13 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
   onRestoreBackup,
   onResetToDemoData,
 }) => {
-  const [activeTab, setActiveTab] = useState<'sync' | 'code' | 'guide' | 'logs' | 'backup'>('sync');
+  const [activeTab, setActiveTab] = useState<'sync' | 'code' | 'guide' | 'storage_roles' | 'logs' | 'backup'>('sync');
   const [webhookUrl, setWebhookUrl] = useState('');
   const [autoSync, setAutoSync] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [dbStats, setDbStats] = useState<DatabaseStats | null>(null);
   const [syncStatus, setSyncStatus] = useState<{ type: 'idle' | 'success' | 'error'; message: string }>({
     type: 'idle',
     message: '',
@@ -92,6 +100,7 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
       setAutoSync(getStoredAutoSync());
       setLastSyncTime(getStoredLastSync());
       setSyncLogs(getStoredSyncLogs());
+      setDbStats(getDatabaseStorageStats());
     }
   }, [isOpen]);
 
@@ -381,6 +390,17 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
             <span>ধাপে ধাপে গাইড (Setup Guide)</span>
           </button>
           <button
+            onClick={() => setActiveTab('storage_roles')}
+            className={`px-4 py-2.5 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+              activeTab === 'storage_roles'
+                ? 'border-purple-500 text-purple-400 bg-purple-500/10'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>রোল ও ডেটা স্টোরেজ গাইড</span>
+          </button>
+          <button
             onClick={() => setActiveTab('logs')}
             className={`px-4 py-2.5 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
               activeTab === 'logs'
@@ -461,6 +481,23 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
                 </button>
                 <button
                   type="button"
+                  onClick={() => {
+                    setWebhookUrl(DEFAULT_FIXED_WEBHOOK_URL);
+                    setStoredWebhookUrl(DEFAULT_FIXED_WEBHOOK_URL);
+                    setSyncStatus({
+                      type: 'success',
+                      message: '📌 ডিফল্ট স্থায়ী ওয়েবঅ্যাপ লিঙ্ক স্বয়ংক্রিয়ভাবে সক্রিয় করা হয়েছে!',
+                    });
+                    setTimeout(() => setSyncStatus({ type: 'idle', message: '' }), 3500);
+                  }}
+                  title="নতুন ব্রাউজার বা ডিভাইসেও স্বয়ংক্রিয় কানেক্টের জন্য স্থায়ী লিঙ্ক লোড করুন"
+                  className="px-3 py-2.5 rounded-lg bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 border border-indigo-700/60 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1"
+                >
+                  <Lock className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>স্থায়ী লিঙ্ক লোড</span>
+                </button>
+                <button
+                  type="button"
                   onClick={handleTestConnection}
                   disabled={isTesting}
                   className="px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-emerald-900/40 disabled:opacity-50"
@@ -470,9 +507,18 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
                 </button>
               </div>
 
-              <p className="text-[11px] text-slate-400">
-                💡 <span className="font-semibold text-slate-300">কোথা থেকে পাবেন?</span> গুগল শিটের Apps Script এ গিয়ে <b>Deploy &gt; New deployment &gt; Web app</b> করে পাওয়া URL টি এখানে দিন। (বিস্তারিত দেখতে <button onClick={() => setActiveTab('guide')} className="text-emerald-400 underline hover:text-emerald-300 cursor-pointer">ধাপে ধাপে গাইড</button> দেখুন)
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
+                <p className="text-[11px] text-slate-400">
+                  💡 <span className="font-semibold text-slate-300">নতুন ব্রাউজারে লিংক চাওয়া বন্ধ করতে:</span> সেটিংসের স্থায়ী লিংক সবসময় সংরক্ষণ থাকবে।
+                </p>
+                <button
+                  onClick={() => setActiveTab('storage_roles')}
+                  className="text-[11px] text-purple-400 hover:text-purple-300 underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span>রোল পরিবর্তন ও ডেটা কোথায় সেভ হয় জানুন</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
             </div>
 
             {/* Auto-Sync & Manual Trigger Card */}
@@ -737,6 +783,126 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Tab: Storage & Multi-Role Architecture Guide */}
+        {activeTab === 'storage_roles' && (
+          <div className="flex-1 overflow-y-auto py-4 space-y-4 text-xs pr-1">
+            {/* Main banner */}
+            <div className="bg-gradient-to-r from-purple-950/70 via-indigo-950/80 to-slate-900 p-4 rounded-xl border border-purple-500/40">
+              <h4 className="text-sm font-bold text-purple-300 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-purple-400" />
+                <span>সেন্ট্রাল ডেটাবেজ ও রোল পরিবর্তন নির্দেশিকা (Single Unified Database Architecture)</span>
+              </h4>
+              <p className="text-slate-300 text-xs mt-1 leading-relaxed">
+                আপনার স্কুলের সমস্ত শিক্ষার্থী, ফি, রেজাল্ট ও হাজিরার তথ্য একটি <b>একক কেন্দ্রীয় ডেটাবেজ (Centralized Database)</b> এ সংরক্ষিত থাকে। ইউজার বা রোল পরিবর্তন করলেও কোনো ডেটা হারিয়ে যায় না।
+              </p>
+            </div>
+
+            {/* 3 Core Architecture Concepts */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                  <HardDrive className="w-4 h-4" />
+                </div>
+                <h5 className="font-bold text-white text-sm">১. ব্রাউজার মেমোরি (Local Persistence)</h5>
+                <p className="text-slate-400 text-[11px] leading-relaxed">
+                  আপনার কম্পিউটারের লোকাল স্টোরেজে (LocalStorage) সব রেকর্ড তাত্ক্ষণিক সেভ হয়। পেজ রিলোড দিলেও বা অন্য রোল-এ সুইচ করলেও ডেটা সুরক্ষিত থাকে।
+                </p>
+              </div>
+
+              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                  <Globe className="w-4 h-4" />
+                </div>
+                <h5 className="font-bold text-white text-sm">২. ক্লাউড গুগল শিট (Cloud Auto-Sync)</h5>
+                <p className="text-slate-400 text-[11px] leading-relaxed">
+                  ওয়েবএপ কানেক্টেড থাকলে ব্যাকগ্রাউন্ডে গুগল শিটের ১০টি ভিন্ন শিটে সমস্ত ডেটা ব্যাকআপ ও লাইভ সিঙ্ক হতে থাকে।
+                </p>
+              </div>
+
+              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <h5 className="font-bold text-white text-sm">৩. স্থায়ী লিঙ্ক (Permanent Webhook)</h5>
+                <p className="text-slate-400 text-[11px] leading-relaxed">
+                  নতুন ব্রাউজারে খুললে যাতে বারবার লিঙ্ক না দিতে হয়, সেজন্য সিস্টেমে বিল্ট-ইন স্থায়ী লিঙ্ক কনফিগার করা হয়েছে।
+                </p>
+              </div>
+            </div>
+
+            {/* Role Breakdown */}
+            <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-3">
+              <h5 className="font-bold text-slate-200 text-sm flex items-center gap-2">
+                <Users className="w-4 h-4 text-indigo-400" />
+                <span>বিভিন্ন রোলে সুইচ করলে ডেটা কীভাবে কাজ করে?</span>
+              </h5>
+
+              <div className="space-y-2.5">
+                <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 flex items-start gap-3">
+                  <span className="px-2 py-1 rounded bg-indigo-500/20 text-indigo-300 font-bold text-[11px] shrink-0 border border-indigo-500/30">
+                    👨‍🏫 Teacher Mode
+                  </span>
+                  <div className="text-[11px] text-slate-300 leading-relaxed">
+                    শিক্ষক হিসেবে লগইন করলে আপনি ক্লাস হাজিরা, পরীক্ষার নম্বর ও স্টুডেন্ট প্রোফাইল এন্ট্রি দিতে পারবেন। <b>শিক্ষক যা-ই সেভ করবেন, তা সরাসরি স্কুলের সেন্ট্রাল ডেটাবেজে জমা হবে</b>।
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 flex items-start gap-3">
+                  <span className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[11px] shrink-0 border border-emerald-500/30">
+                    👑 Admin Mode
+                  </span>
+                  <div className="text-[11px] text-slate-300 leading-relaxed">
+                    অ্যাডমিন মোডে ফিরলে শিক্ষক, একাউন্ট্যান্ট বা স্টাফদের যুক্ত করা সমস্ত ডেটা এক নজরে ড্যাশবোর্ড, রেজাল্ট ও ফি ম্যানেজমেন্টে দৃশ্যমান হবে।
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 flex items-start gap-3">
+                  <span className="px-2 py-1 rounded bg-amber-500/20 text-amber-300 font-bold text-[11px] shrink-0 border border-amber-500/30">
+                    💰 Accountant Mode
+                  </span>
+                  <div className="text-[11px] text-slate-300 leading-relaxed">
+                    হিসাবরক্ষক ফি গ্রহণ ও খরচের রসিদ এন্ট্রি করেন, যা স্বয়ংক্রিয়ভাবে ব্যালেন্স শিট ও গুগল শিটের <code>2_Fees_Collection</code> এবং <code>4_Expenses</code> এ যুক্ত হয়।
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Current Real-time Storage Monitor */}
+            {dbStats && (
+              <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-white text-xs flex items-center gap-2">
+                    <Database className="w-4 h-4 text-emerald-400" />
+                    <span>বর্তমান ডিভাইসের সেন্ট্রাল ডেটাবেজ স্ট্যাটাস</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
+                    {dbStats.storageSizeKb} KB Storage Used
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  <div className="p-2 bg-slate-900 rounded border border-slate-800 text-center">
+                    <span className="text-[10px] text-slate-400 block">শিক্ষার্থী</span>
+                    <span className="font-bold text-white text-sm">{dbStats.studentsCount} জন</span>
+                  </div>
+                  <div className="p-2 bg-slate-900 rounded border border-slate-800 text-center">
+                    <span className="text-[10px] text-slate-400 block">ফি রেকর্ড</span>
+                    <span className="font-bold text-emerald-400 text-sm">{dbStats.feesCount} টি</span>
+                  </div>
+                  <div className="p-2 bg-slate-900 rounded border border-slate-800 text-center">
+                    <span className="text-[10px] text-slate-400 block">রেজাল্ট মার্কশিট</span>
+                    <span className="font-bold text-blue-400 text-sm">{dbStats.resultsCount} টি</span>
+                  </div>
+                  <div className="p-2 bg-slate-900 rounded border border-slate-800 text-center">
+                    <span className="text-[10px] text-slate-400 block">হাজিরা খাতা</span>
+                    <span className="font-bold text-amber-400 text-sm">{dbStats.attendanceCount} টি</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
