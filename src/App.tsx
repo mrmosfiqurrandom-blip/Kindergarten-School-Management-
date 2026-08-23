@@ -74,6 +74,9 @@ export default function App() {
   const [selectedStudentForReceipt, setSelectedStudentForReceipt] = useState<string>('KS-101');
   const [selectedMonthForReceipt, setSelectedMonthForReceipt] = useState<string>('January 2025');
 
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
   const [isPythonModalOpen, setIsPythonModalOpen] = useState(false);
   const [isGoogleSheetsModalOpen, setIsGoogleSheetsModalOpen] = useState(false);
   const [isGoogleSheetsConnected, setIsGoogleSheetsConnected] = useState(false);
@@ -436,8 +439,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100/90 text-slate-900 flex flex-col font-sans antialiased pb-16 sm:pb-0">
-      {/* Top Header & 10-Sheet Navigation */}
+    <div className="min-h-screen bg-slate-100/90 text-slate-900 flex flex-col font-sans antialiased">
+      {/* Left Sidebar Menubar & Fixed Header Bar */}
       <Navigation
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -450,163 +453,174 @@ export default function App() {
         onOpenGoogleSheetsSync={() => setIsGoogleSheetsModalOpen(true)}
         isGoogleSheetsConnected={isGoogleSheetsConnected}
         onPrint={handlePrint}
+        isSidebarCollapsed={isSidebarCollapsed}
+        setIsSidebarCollapsed={setIsSidebarCollapsed}
+        isMobileSidebarOpen={isMobileSidebarOpen}
+        setIsMobileSidebarOpen={setIsMobileSidebarOpen}
       />
 
-      {/* Live Google Sheets Status Bar */}
-      <LiveSyncStatusBar
-        onOpenSyncModal={() => setIsGoogleSheetsModalOpen(true)}
-        onManualSyncAll={handleManualSyncAll}
-        isSyncing={isSyncingGlobal}
-        lastSyncTimestamp={lastSyncTimestamp}
-      />
+      {/* Main Content Workspace (Padded for Left Sidebar on Desktop) */}
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${
+          isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'
+        }`}
+      >
+        {/* Live Google Sheets Status Bar */}
+        <LiveSyncStatusBar
+          onOpenSyncModal={() => setIsGoogleSheetsModalOpen(true)}
+          onManualSyncAll={handleManualSyncAll}
+          isSyncing={isSyncingGlobal}
+          lastSyncTimestamp={lastSyncTimestamp}
+        />
 
-      {/* Auto-Sync Toast Notification */}
-      {autoSyncNotification && (
-        <div className="fixed bottom-16 sm:bottom-6 right-4 sm:right-6 z-50 bg-slate-950 text-white px-4 py-2.5 rounded-xl shadow-2xl border border-emerald-500/40 text-xs font-semibold flex items-center gap-2.5 animate-bounce">
-          <Zap className="w-4 h-4 text-emerald-400 animate-pulse" />
-          <span>{autoSyncNotification}</span>
-        </div>
-      )}
-
-      {/* Main Content Viewport */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 lg:p-8">
-        {activeTab === 'dashboard' && (
-          <DashboardView
-            students={students}
-            staffList={staffList}
-            fees={fees}
-            expenses={expenses}
-            results={results}
-            onNavigate={(tab) => setActiveTab(tab)}
-            onExportExcel={handleExportExcel}
-            onOpenGoogleSheetsSync={() => setIsGoogleSheetsModalOpen(true)}
-          />
-        )}
-
-        {activeTab === 'students' && (
-          <StudentDatabaseView
-            students={students}
-            onAddStudent={handleAddStudent}
-            onUpdateStudent={handleUpdateStudent}
-            onDeleteStudent={handleDeleteStudent}
-            onViewProfile={handleViewProfile}
-          />
-        )}
-
-        {activeTab === 'profile' && (
-          <StudentProfileView
-            students={students}
-            fees={fees}
-            results={results}
-            attendance={attendance}
-            schoolInfo={schoolInfo}
-            selectedStudentId={selectedStudentForProfile}
-            onNavigate={(tab) => setActiveTab(tab)}
-            onUpdateStudent={handleUpdateStudent}
-            onSelectStudentForReceipt={handleGenerateReceipt}
-          />
-        )}
-
-        {activeTab === 'attendance' && (
-          <AttendanceView
-            students={students}
-            attendance={attendance}
-            onSaveAttendance={handleSaveAttendance}
-            currentUser={currentUser}
-          />
-        )}
-
-        {activeTab === 'fees' && (
-          <FeeManagementView
-            fees={fees}
-            students={students}
-            onAddFeeRecord={handleAddFeeRecord}
-            onUpdateFeeRecord={handleUpdateFeeRecord}
-            onGenerateReceipt={handleGenerateReceipt}
-            onSendWhatsApp={handleSendWhatsApp}
-          />
-        )}
-
-        {activeTab === 'receipt' && (
-          <FeeReceiptView
-            students={students}
-            fees={fees}
-            schoolInfo={schoolInfo}
-            selectedStudentId={selectedStudentForReceipt}
-            selectedMonth={selectedMonthForReceipt}
-          />
-        )}
-
-        {activeTab === 'due_alerts' && (
-          <WhatsAppAlertsView students={students} fees={fees} schoolInfo={schoolInfo} />
-        )}
-
-        {activeTab === 'payroll' && (
-          <StaffPayrollView
-            staffList={staffList}
-            onAddStaff={handleAddStaff}
-            onUpdateStaff={handleUpdateStaff}
-            onDeleteStaff={handleDeleteStaff}
-          />
-        )}
-
-        {activeTab === 'expenses' && (
-          <ExpenseTrackerView
-            expenses={expenses}
-            onAddExpense={handleAddExpense}
-            onUpdateExpense={handleUpdateExpense}
-            onDeleteExpense={handleDeleteExpense}
-          />
-        )}
-
-        {activeTab === 'results' && (
-          <AcademicResultsView
-            results={results}
-            students={students}
-            schoolInfo={schoolInfo}
-            onAddResult={handleAddResult}
-            onUpdateResult={handleUpdateResult}
-          />
-        )}
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 print:hidden text-xs">
-        <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="font-semibold text-slate-200">{schoolInfo.name}</span>
-            <span>— Kindergarten Excel & Python Automation System</span>
+        {/* Auto-Sync Toast Notification */}
+        {autoSyncNotification && (
+          <div className="fixed bottom-6 right-6 z-50 bg-slate-950 text-white px-4 py-2.5 rounded-xl shadow-2xl border border-emerald-500/40 text-xs font-semibold flex items-center gap-2.5 animate-bounce">
+            <Zap className="w-4 h-4 text-emerald-400 animate-pulse" />
+            <span>{autoSyncNotification}</span>
           </div>
+        )}
 
-          <div className="flex items-center gap-4 text-[11px]">
-            <button
-              onClick={() => setIsGoogleSheetsModalOpen(true)}
-              className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 cursor-pointer"
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span>Google Sheets Live Sync</span>
-            </button>
-            <span>•</span>
-            <button
-              onClick={handleExportExcel}
-              disabled={isExportingExcel}
-              className="text-slate-300 hover:text-white font-semibold flex items-center gap-1 cursor-pointer"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{isExportingExcel ? 'Generating .xlsx...' : 'Direct Excel (.xlsx)'}</span>
-            </button>
-            <span>•</span>
-            <button
-              onClick={() => setIsPythonModalOpen(true)}
-              className="text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 cursor-pointer"
-            >
-              <Code2 className="w-3.5 h-3.5" />
-              <span>Python (openpyxl) Script</span>
-            </button>
+        {/* Main Content Viewport */}
+        <main className="flex-1 w-full p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+          {activeTab === 'dashboard' && (
+            <DashboardView
+              students={students}
+              staffList={staffList}
+              fees={fees}
+              expenses={expenses}
+              results={results}
+              onNavigate={(tab) => setActiveTab(tab)}
+              onExportExcel={handleExportExcel}
+              onOpenGoogleSheetsSync={() => setIsGoogleSheetsModalOpen(true)}
+            />
+          )}
+
+          {activeTab === 'students' && (
+            <StudentDatabaseView
+              students={students}
+              onAddStudent={handleAddStudent}
+              onUpdateStudent={handleUpdateStudent}
+              onDeleteStudent={handleDeleteStudent}
+              onViewProfile={handleViewProfile}
+            />
+          )}
+
+          {activeTab === 'profile' && (
+            <StudentProfileView
+              students={students}
+              fees={fees}
+              results={results}
+              attendance={attendance}
+              schoolInfo={schoolInfo}
+              selectedStudentId={selectedStudentForProfile}
+              onNavigate={(tab) => setActiveTab(tab)}
+              onUpdateStudent={handleUpdateStudent}
+              onSelectStudentForReceipt={handleGenerateReceipt}
+            />
+          )}
+
+          {activeTab === 'attendance' && (
+            <AttendanceView
+              students={students}
+              attendance={attendance}
+              onSaveAttendance={handleSaveAttendance}
+              currentUser={currentUser}
+            />
+          )}
+
+          {activeTab === 'fees' && (
+            <FeeManagementView
+              fees={fees}
+              students={students}
+              onAddFeeRecord={handleAddFeeRecord}
+              onUpdateFeeRecord={handleUpdateFeeRecord}
+              onGenerateReceipt={handleGenerateReceipt}
+              onSendWhatsApp={handleSendWhatsApp}
+            />
+          )}
+
+          {activeTab === 'receipt' && (
+            <FeeReceiptView
+              students={students}
+              fees={fees}
+              schoolInfo={schoolInfo}
+              selectedStudentId={selectedStudentForReceipt}
+              selectedMonth={selectedMonthForReceipt}
+            />
+          )}
+
+          {activeTab === 'due_alerts' && (
+            <WhatsAppAlertsView students={students} fees={fees} schoolInfo={schoolInfo} />
+          )}
+
+          {activeTab === 'payroll' && (
+            <StaffPayrollView
+              staffList={staffList}
+              onAddStaff={handleAddStaff}
+              onUpdateStaff={handleUpdateStaff}
+              onDeleteStaff={handleDeleteStaff}
+            />
+          )}
+
+          {activeTab === 'expenses' && (
+            <ExpenseTrackerView
+              expenses={expenses}
+              onAddExpense={handleAddExpense}
+              onUpdateExpense={handleUpdateExpense}
+              onDeleteExpense={handleDeleteExpense}
+            />
+          )}
+
+          {activeTab === 'results' && (
+            <AcademicResultsView
+              results={results}
+              students={students}
+              schoolInfo={schoolInfo}
+              onAddResult={handleAddResult}
+              onUpdateResult={handleUpdateResult}
+            />
+          )}
+        </main>
+
+        {/* Footer */}
+        <footer className="bg-slate-900 text-slate-400 py-4 px-4 sm:px-8 border-t border-slate-800 print:hidden text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="font-semibold text-slate-200">{schoolInfo.name}</span>
+              <span>— স্কুল ম্যানেজমেন্ট ও অটোমেশন পোর্টাল</span>
+            </div>
+
+            <div className="flex items-center gap-4 text-[11px]">
+              <button
+                onClick={() => setIsGoogleSheetsModalOpen(true)}
+                className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 cursor-pointer"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Google Sheets Live Sync</span>
+              </button>
+              <span>•</span>
+              <button
+                onClick={handleExportExcel}
+                disabled={isExportingExcel}
+                className="text-slate-300 hover:text-white font-semibold flex items-center gap-1 cursor-pointer"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{isExportingExcel ? 'Generating .xlsx...' : 'Direct Excel (.xlsx)'}</span>
+              </button>
+              <span>•</span>
+              <button
+                onClick={() => setIsPythonModalOpen(true)}
+                className="text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 cursor-pointer"
+              >
+                <Code2 className="w-3.5 h-3.5" />
+                <span>Python Script</span>
+              </button>
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
 
       {/* Python Script Modal */}
       <PythonScriptModal

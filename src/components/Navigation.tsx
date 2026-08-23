@@ -18,6 +18,12 @@ import {
   X,
   Zap,
   ChevronRight,
+  ShieldCheck,
+  LogOut,
+  Sliders,
+  Database,
+  ExternalLink,
+  ChevronLeft,
 } from 'lucide-react';
 import { SchoolInfo, User } from '../types';
 
@@ -45,6 +51,10 @@ interface NavigationProps {
   onOpenGoogleSheetsSync: () => void;
   isGoogleSheetsConnected: boolean;
   onPrint: () => void;
+  isSidebarCollapsed: boolean;
+  setIsSidebarCollapsed: (collapsed: boolean) => void;
+  isMobileSidebarOpen: boolean;
+  setIsMobileSidebarOpen: (open: boolean) => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -59,26 +69,94 @@ export const Navigation: React.FC<NavigationProps> = ({
   onOpenGoogleSheetsSync,
   isGoogleSheetsConnected,
   onPrint,
+  isSidebarCollapsed,
+  setIsSidebarCollapsed,
+  isMobileSidebarOpen,
+  setIsMobileSidebarOpen,
 }) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const tabs: { id: ActiveTab; label: string; labelBn: string; icon: React.ReactNode; sheetNum: number }[] = [
-    { id: 'dashboard', label: 'Dashboard & KPIs', labelBn: '১. ড্যাশবোর্ড', icon: <LayoutDashboard className="w-4 h-4" />, sheetNum: 1 },
-    { id: 'students', label: 'Student Database', labelBn: '২. শিক্ষার্থী তথ্য', icon: <Users className="w-4 h-4" />, sheetNum: 2 },
-    { id: 'profile', label: 'Student Profile', labelBn: '৩. ডিজিটাল প্রোফাইল', icon: <UserCheck className="w-4 h-4" />, sheetNum: 3 },
-    { id: 'attendance', label: 'Attendance Tracker', labelBn: '৪. উপস্থিতি খাতা', icon: <CalendarCheck className="w-4 h-4" />, sheetNum: 4 },
-    { id: 'fees', label: 'Fee Management', labelBn: '৫. ফি ব্যবস্থাপনা', icon: <CreditCard className="w-4 h-4" />, sheetNum: 5 },
-    { id: 'receipt', label: 'Fee Receipt / Invoice', labelBn: '৬. ফি রসিদ (ভাউচার)', icon: <Receipt className="w-4 h-4" />, sheetNum: 6 },
-    { id: 'due_alerts', label: 'WhatsApp Due Alert', labelBn: '৭. বকেয়া ও হোয়াটসঅ্যাপ', icon: <MessageSquare className="w-4 h-4" />, sheetNum: 7 },
-    { id: 'payroll', label: 'Staff & Payroll', labelBn: '৮. শিক্ষক ও বেতন', icon: <Briefcase className="w-4 h-4" />, sheetNum: 8 },
-    { id: 'expenses', label: 'Expense Tracker', labelBn: '৯. স্কুলের খরচ', icon: <TrendingDown className="w-4 h-4" />, sheetNum: 9 },
-    { id: 'results', label: 'Academic Results', labelBn: '১০. রেজাল্ট ও প্রোগ্রেস', icon: <GraduationCap className="w-4 h-4" />, sheetNum: 10 },
+  const navSections = [
+    {
+      groupTitle: 'মূল ড্যাশবোর্ড (Overview)',
+      items: [
+        {
+          id: 'dashboard' as ActiveTab,
+          label: 'Dashboard & KPIs',
+          labelBn: 'ড্যাশবোর্ড ওভারভিউ',
+          icon: <LayoutDashboard className="w-4 h-4" />,
+          badge: 'Live',
+        },
+      ],
+    },
+    {
+      groupTitle: 'শিক্ষার্থী ও একাডেমিক (Academics)',
+      items: [
+        {
+          id: 'students' as ActiveTab,
+          label: 'Student Database',
+          labelBn: 'শিক্ষার্থী তালিকা ও এন্ট্রি',
+          icon: <Users className="w-4 h-4" />,
+        },
+        {
+          id: 'profile' as ActiveTab,
+          label: 'Student Profile',
+          labelBn: 'ডিজিটাল আইডি ও প্রোফাইল',
+          icon: <UserCheck className="w-4 h-4" />,
+        },
+        {
+          id: 'attendance' as ActiveTab,
+          label: 'Attendance Tracker',
+          labelBn: 'উপস্থিতি খাতা',
+          icon: <CalendarCheck className="w-4 h-4" />,
+        },
+        {
+          id: 'results' as ActiveTab,
+          label: 'Academic Results',
+          labelBn: 'রেজাল্ট ও মার্কশিট',
+          icon: <GraduationCap className="w-4 h-4" />,
+        },
+      ],
+    },
+    {
+      groupTitle: 'হিসাব ও অর্থ (Finance & Accounts)',
+      items: [
+        {
+          id: 'fees' as ActiveTab,
+          label: 'Fee Management',
+          labelBn: 'ফি আদায় ও বকেয়া হিসাব',
+          icon: <CreditCard className="w-4 h-4" />,
+        },
+        {
+          id: 'receipt' as ActiveTab,
+          label: 'Fee Receipt / Voucher',
+          labelBn: 'ফি রসিদ ও ভাউচার',
+          icon: <Receipt className="w-4 h-4" />,
+        },
+        {
+          id: 'payroll' as ActiveTab,
+          label: 'Staff & Payroll',
+          labelBn: 'শিক্ষক ও স্টাফ বেতন',
+          icon: <Briefcase className="w-4 h-4" />,
+        },
+        {
+          id: 'expenses' as ActiveTab,
+          label: 'Expense Tracker',
+          labelBn: 'স্কুলের দৈনিক খরচ',
+          icon: <TrendingDown className="w-4 h-4" />,
+        },
+      ],
+    },
+    {
+      groupTitle: 'যোগাযোগ ও মেসেজিং (Alerts)',
+      items: [
+        {
+          id: 'due_alerts' as ActiveTab,
+          label: 'WhatsApp Due Alert',
+          labelBn: 'বকেয়া নোটিশ ও হোয়াটসঅ্যাপ',
+          icon: <MessageSquare className="w-4 h-4" />,
+        },
+      ],
+    },
   ];
-
-  const handleTabSelect = (tabId: ActiveTab) => {
-    setActiveTab(tabId);
-    setIsMobileMenuOpen(false);
-  };
 
   const getRoleTag = (role?: string) => {
     switch (role) {
@@ -97,33 +175,244 @@ export const Navigation: React.FC<NavigationProps> = ({
 
   const roleInfo = getRoleTag(currentUser?.role);
 
+  const handleSelectTab = (tabId: ActiveTab) => {
+    setActiveTab(tabId);
+    setIsMobileSidebarOpen(false);
+  };
+
+  // Find active tab info for header display
+  const allTabs = navSections.flatMap((s) => s.items);
+  const currentTabInfo = allTabs.find((t) => t.id === activeTab) || allTabs[0];
+
   return (
     <>
-      <header className="bg-slate-900 text-white shadow-xl sticky top-0 z-40 print:hidden border-b border-slate-800">
-        {/* Top Header Row */}
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-3">
-          {/* Logo & School Name */}
-          <div className="flex items-center space-x-2.5 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-black text-lg shadow-md shadow-amber-500/20 border border-amber-300 shrink-0">
+      {/* ========================================================================= */}
+      {/* 1. DESKTOP & TABLET LEFT SIDEBAR MENUBAR                                  */}
+      {/* ========================================================================= */}
+      <aside
+        className={`hidden lg:flex flex-col fixed inset-y-0 left-0 z-40 bg-slate-900 border-r border-slate-800 text-slate-200 transition-all duration-300 ${
+          isSidebarCollapsed ? 'w-20' : 'w-72'
+        }`}
+      >
+        {/* Sidebar Header: School Logo & Title */}
+        <div className="p-4 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-950/60">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-black text-xl shadow-md shadow-amber-500/20 border border-amber-300 shrink-0">
               ☀️
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h1 className="text-base sm:text-lg font-bold tracking-tight text-white truncate">
+            {!isSidebarCollapsed && (
+              <div className="min-w-0">
+                <h1 className="text-sm font-bold text-white tracking-tight truncate">
                   {schoolInfo.name}
                 </h1>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-medium border border-emerald-500/30 hidden sm:flex items-center gap-0.5 shrink-0">
-                  <Sparkles className="w-2.5 h-2.5" /> 10 Tabs
+                <p className="text-[10px] text-amber-300 font-medium truncate">
+                  {schoolInfo.nameBn}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700/60 transition-colors cursor-pointer"
+            title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {/* Current User Role Card in Sidebar */}
+        {currentUser && !isSidebarCollapsed && (
+          <div className="p-3 mx-3 mt-3 bg-slate-950/70 rounded-xl border border-slate-800/80 flex items-center justify-between gap-2 shadow-inner">
+            <button
+              onClick={onOpenProfileModal}
+              className="flex items-center gap-2.5 min-w-0 text-left cursor-pointer group flex-1"
+              title="প্রোফাইল সেটিংস ও রোল পরিবর্তন"
+            >
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-xs font-bold text-white shadow">
+                {currentUser.name.charAt(0)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-bold text-slate-100 group-hover:text-white truncate">
+                  {currentUser.name}
+                </div>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold border ${roleInfo.color}`}>
+                    {roleInfo.icon} {roleInfo.label}
+                  </span>
+                </div>
+              </div>
+            </button>
+            <button
+              onClick={onLogout}
+              className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-300 transition-colors cursor-pointer"
+              title="লগআউট"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Scrollable Navigation Items */}
+        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-5 scrollbar-thin scrollbar-thumb-slate-800">
+          {navSections.map((section, sIdx) => (
+            <div key={sIdx} className="space-y-1">
+              {!isSidebarCollapsed && (
+                <div className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  {section.groupTitle}
+                </div>
+              )}
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleSelectTab(item.id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all group cursor-pointer ${
+                        isActive
+                          ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30 font-semibold'
+                          : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                      } ${isSidebarCollapsed ? 'justify-center px-2' : ''}`}
+                      title={item.label}
+                    >
+                      <span className={`shrink-0 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-blue-400'}`}>
+                        {item.icon}
+                      </span>
+                      {!isSidebarCollapsed && (
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="truncate">{item.label}</div>
+                          <div className={`text-[10px] truncate ${isActive ? 'text-blue-100' : 'text-slate-400'}`}>
+                            {item.labelBn}
+                          </div>
+                        </div>
+                      )}
+                      {!isSidebarCollapsed && item.badge && (
+                        <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[9px] font-bold border border-emerald-500/30">
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          {/* Quick Integration Tools Section */}
+          <div className="pt-2 border-t border-slate-800/80 space-y-1">
+            {!isSidebarCollapsed && (
+              <div className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                ইন্টিগ্রেশন ও এক্সপোর্ট (Tools)
+              </div>
+            )}
+
+            <button
+              onClick={onOpenGoogleSheetsSync}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                isGoogleSheetsConnected
+                  ? 'bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+              } ${isSidebarCollapsed ? 'justify-center px-2' : ''}`}
+              title="Google Sheets Live Webhook Sync"
+            >
+              <div className="relative shrink-0">
+                <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                {isGoogleSheetsConnected && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                )}
+              </div>
+              {!isSidebarCollapsed && (
+                <div className="flex-1 text-left min-w-0">
+                  <div className="truncate font-semibold">গুগল শিট সিঙ্ক</div>
+                  <div className="text-[10px] text-emerald-400 truncate">
+                    {isGoogleSheetsConnected ? '✓ লাইভ কানেক্টেড' : 'কানেক্ট করুন'}
+                  </div>
+                </div>
+              )}
+            </button>
+
+            <button
+              onClick={onExportExcel}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium bg-slate-800/70 hover:bg-slate-700 text-slate-200 border border-slate-700/60 transition-all cursor-pointer ${
+                isSidebarCollapsed ? 'justify-center px-2' : ''
+              }`}
+              title="Download 10-Sheet Kindergarten Excel Workbook"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-blue-400 shrink-0" />
+              {!isSidebarCollapsed && (
+                <div className="flex-1 text-left min-w-0">
+                  <div className="truncate">এক্সেল ফাইল (.xlsx)</div>
+                  <div className="text-[10px] text-slate-400 truncate">১০-শিট অটো-ওয়ার্কবুক</div>
+                </div>
+              )}
+            </button>
+
+            <button
+              onClick={onOpenPythonScript}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium bg-slate-800/70 hover:bg-slate-700 text-slate-200 border border-slate-700/60 transition-all cursor-pointer ${
+                isSidebarCollapsed ? 'justify-center px-2' : ''
+              }`}
+              title="Python (openpyxl) Script"
+            >
+              <Code2 className="w-4 h-4 text-indigo-400 shrink-0" />
+              {!isSidebarCollapsed && (
+                <div className="flex-1 text-left min-w-0">
+                  <div className="truncate">পাইথন স্ক্রিপ্ট</div>
+                  <div className="text-[10px] text-slate-400 truncate">openpyxl অটোমেশন</div>
+                </div>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Sidebar Footer */}
+        {!isSidebarCollapsed && (
+          <div className="p-3 border-t border-slate-800 text-[11px] text-slate-400 bg-slate-950/70 flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>সেন্ট্রাল ডাটাবেজ সচল</span>
+            </div>
+            <span className="text-[10px] text-slate-500 font-mono">v2.5</span>
+          </div>
+        )}
+      </aside>
+
+      {/* ========================================================================= */}
+      {/* 2. TOP HEADER BAR (Stays fixed above main workspace)                     */}
+      {/* ========================================================================= */}
+      <header
+        className={`bg-slate-900 text-white shadow-md border-b border-slate-800 sticky top-0 z-30 transition-all duration-300 ${
+          isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'
+        }`}
+      >
+        <div className="px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
+          {/* Left: Mobile hamburger & Active Section Title */}
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+              className="lg:hidden p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 cursor-pointer"
+              aria-label="Toggle Menubar"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-blue-400">{currentTabInfo.icon}</span>
+                <h2 className="text-sm sm:text-base font-bold text-white truncate">
+                  {currentTabInfo.label}
+                </h2>
+                <span className="text-xs text-slate-400 hidden md:inline">
+                  • {currentTabInfo.labelBn}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-300 font-medium truncate">
-                {schoolInfo.nameBn} • <span className="text-slate-400">{schoolInfo.phone}</span>
-              </p>
             </div>
           </div>
 
-          {/* Desktop & Tablet Action Buttons */}
-          <div className="hidden sm:flex items-center gap-2">
+          {/* Right Header Quick Actions */}
+          <div className="flex items-center gap-2">
+            {/* Google Sheets Sync Button */}
             <button
               onClick={onOpenGoogleSheetsSync}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all hover:scale-[1.02] active:scale-95 cursor-pointer border ${
@@ -131,7 +420,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                   ? 'bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border-emerald-500/50'
                   : 'bg-emerald-700 hover:bg-emerald-600 text-white border-emerald-600'
               }`}
-              title="Google Sheets Live Webhook Sync"
+              title="Google Sheets Live Sync"
             >
               <span className="relative flex h-2 w-2">
                 {isGoogleSheetsConnected && (
@@ -144,263 +433,186 @@ export const Navigation: React.FC<NavigationProps> = ({
                 ></span>
               </span>
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-300" />
-              <span>{isGoogleSheetsConnected ? 'Google Sheets' : 'Connect Sheets'}</span>
+              <span className="hidden sm:inline">{isGoogleSheetsConnected ? 'গুগল শিট সিঙ্ক' : 'Connect Sheets'}</span>
             </button>
 
+            {/* Direct Excel Download */}
             <button
               onClick={onExportExcel}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
               title="Download Excel Workbook"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
               <span className="hidden md:inline">Excel (.xlsx)</span>
             </button>
 
-            <button
-              onClick={onOpenPythonScript}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
-              title="Python Script"
-            >
-              <Code2 className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">Python</span>
-            </button>
-
+            {/* Print Button */}
             <button
               onClick={onPrint}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 cursor-pointer"
-              title="Print Sheet"
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 cursor-pointer flex items-center gap-1"
+              title="Print Current View"
             >
               <Printer className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">প্রিন্ট</span>
             </button>
 
-            {/* User Profile Badge & Security */}
-            {currentUser && (
-              <div className="flex items-center gap-1.5 pl-2 border-l border-slate-800">
-                <button
-                  onClick={onOpenProfileModal}
-                  className="flex items-center gap-2 py-1 px-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700 text-left transition-all cursor-pointer group shadow-sm"
-                  title="অ্যাকাউন্ট ও নিরাপত্তা সেটিংস"
-                >
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-xs font-bold text-white shadow-inner">
-                    {currentUser.name.charAt(0)}
-                  </div>
-                  <div className="min-w-0 hidden md:block">
-                    <div className="text-xs font-bold text-slate-100 group-hover:text-white truncate max-w-[110px]">
-                      {currentUser.name.split(' ')[0]}
-                    </div>
-                    <div className="text-[10px] text-slate-400 truncate max-w-[110px]">
-                      {currentUser.roleTitle.split(' ')[0]}
-                    </div>
-                  </div>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold border ${roleInfo.color}`}>
-                    {roleInfo.icon} {roleInfo.label}
-                  </span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Mobile Right Controls: Sync Quick Button + User Profile + Mobile Menu Toggle */}
-          <div className="flex sm:hidden items-center gap-1.5">
+            {/* User Profile Button */}
             {currentUser && (
               <button
                 onClick={onOpenProfileModal}
-                className="p-1.5 rounded-lg bg-slate-800 text-amber-300 border border-slate-700 text-xs font-bold flex items-center gap-1 cursor-pointer"
-                title="User Profile"
+                className="flex items-center gap-2 py-1 px-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-left transition-all cursor-pointer shadow-sm"
+                title="অ্যাকাউন্ট ও সিকিউরিটি সেটিংস"
               >
-                <span>{roleInfo.icon}</span>
-                <span className="text-[10px] font-semibold">{currentUser.name.split(' ')[0]}</span>
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-xs font-bold text-white">
+                  {currentUser.name.charAt(0)}
+                </div>
+                <div className="hidden sm:block">
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold border ${roleInfo.color}`}>
+                    {roleInfo.icon} {roleInfo.label}
+                  </span>
+                </div>
               </button>
             )}
-
-            <button
-              onClick={onOpenGoogleSheetsSync}
-              className={`p-2 rounded-lg text-xs font-semibold border ${
-                isGoogleSheetsConnected
-                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
-                  : 'bg-emerald-700 text-white border-emerald-600'
-              }`}
-              title="Google Sheets"
-            >
-              <FileSpreadsheet className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 rounded-lg bg-slate-800 text-slate-200 hover:text-white border border-slate-700 active:bg-slate-700 cursor-pointer"
-              aria-label="Toggle Navigation Menu"
-            >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Scrollable Tabs Bar for Tablets & Desktops */}
-        <div className="bg-slate-950/90 border-t border-slate-800/80 backdrop-blur">
-          <div className="max-w-7xl mx-auto px-2 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700">
-            <nav className="flex space-x-1 py-1.5 min-w-max">
-              {tabs.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => handleTabSelect(tab.id)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
-                      isActive
-                        ? 'bg-blue-600 text-white shadow-sm font-semibold'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
-                    }`}
-                  >
-                    <span className={isActive ? 'text-white' : 'text-slate-400'}>{tab.icon}</span>
-                    <div className="flex flex-col text-left leading-tight">
-                      <span>{tab.label}</span>
-                      <span className={`text-[10px] ${isActive ? 'text-blue-100' : 'text-slate-400'}`}>
-                        {tab.labelBn}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </nav>
           </div>
         </div>
       </header>
 
-      {/* Mobile Slide-Over Drawer for Small Screens */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 sm:hidden bg-slate-950/80 backdrop-blur-xs flex flex-col justify-end">
-          <div className="bg-slate-900 border-t border-slate-700 rounded-t-2xl max-h-[85vh] flex flex-col p-4 shadow-2xl animate-in slide-in-from-bottom duration-200">
+      {/* ========================================================================= */}
+      {/* 3. MOBILE SIDEBAR DRAWER (Slide-over for phones & tablets)               */}
+      {/* ========================================================================= */}
+      {isMobileSidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden bg-slate-950/80 backdrop-blur-xs flex">
+          <div className="bg-slate-900 w-80 max-w-[85vw] h-full flex flex-col shadow-2xl border-r border-slate-800 animate-in slide-in-from-left duration-200">
             {/* Drawer Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                <h3 className="font-bold text-white text-sm">সকল শিট ও মডিউল (All Modules)</h3>
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-black text-lg">
+                  ☀️
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-white text-sm truncate">{schoolInfo.name}</h3>
+                  <p className="text-[10px] text-amber-300 truncate">{schoolInfo.nameBn}</p>
+                </div>
               </div>
               <button
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white"
+                onClick={() => setIsMobileSidebarOpen(false)}
+                className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Modules List */}
-            <div className="overflow-y-auto py-3 space-y-1.5 flex-1">
-              {tabs.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => handleTabSelect(tab.id)}
-                    className={`w-full flex items-center justify-between p-3 rounded-xl text-left transition-all ${
-                      isActive
-                        ? 'bg-blue-600 text-white font-bold shadow-md'
-                        : 'bg-slate-800/60 text-slate-200 hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${isActive ? 'bg-blue-700 text-white' : 'bg-slate-900 text-blue-400'}`}>
-                        {tab.icon}
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold">{tab.label}</div>
-                        <div className={`text-xs ${isActive ? 'text-blue-100' : 'text-slate-400'}`}>{tab.labelBn}</div>
-                      </div>
+            {/* Mobile User Profile */}
+            {currentUser && (
+              <div className="p-3 mx-3 mt-3 bg-slate-950/70 rounded-xl border border-slate-800 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-xs font-bold text-white">
+                    {currentUser.name.charAt(0)}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-200 truncate">{currentUser.name}</div>
+                    <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold border ${roleInfo.color}`}>
+                      {roleInfo.icon} {roleInfo.label}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsMobileSidebarOpen(false);
+                    if (onOpenProfileModal) onOpenProfileModal();
+                  }}
+                  className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-semibold cursor-pointer"
+                >
+                  প্রোফাইল
+                </button>
+              </div>
+            )}
+
+            {/* Mobile Navigation List */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-4">
+              {navSections.map((section, sIdx) => (
+                <div key={sIdx} className="space-y-1">
+                  <div className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    {section.groupTitle}
+                  </div>
+                  <div className="space-y-1">
+                    {section.items.map((item) => {
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => handleSelectTab(item.id)}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all text-left cursor-pointer ${
+                            isActive
+                              ? 'bg-blue-600 text-white font-bold shadow-md'
+                              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                          }`}
+                        >
+                          <span className={isActive ? 'text-white' : 'text-slate-400'}>{item.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="truncate">{item.label}</div>
+                            <div className={`text-[10px] ${isActive ? 'text-blue-100' : 'text-slate-400'}`}>
+                              {item.labelBn}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              {/* Mobile Tools */}
+              <div className="pt-2 border-t border-slate-800 space-y-1.5">
+                <button
+                  onClick={() => {
+                    setIsMobileSidebarOpen(false);
+                    onOpenGoogleSheetsSync();
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium bg-emerald-950/60 text-emerald-300 border border-emerald-500/40 text-left"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                  <div>
+                    <div className="font-bold">গুগল শিট লাইভ সিঙ্ক</div>
+                    <div className="text-[10px] text-emerald-400">
+                      {isGoogleSheetsConnected ? '✓ কানেক্টেড' : 'কানেক্ট করুন'}
                     </div>
-                    <ChevronRight className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
-                  </button>
-                );
-              })}
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsMobileSidebarOpen(false);
+                    onExportExcel();
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium bg-slate-800 text-slate-200 border border-slate-700 text-left"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-blue-400" />
+                  <div>
+                    <div className="font-bold">এক্সেল ডাউনলোড (.xlsx)</div>
+                    <div className="text-[10px] text-slate-400">১০-শিট ফুল ফাইল</div>
+                  </div>
+                </button>
+              </div>
             </div>
 
-            {/* Quick Actions at Bottom of Drawer */}
-            <div className="pt-3 border-t border-slate-800 grid grid-cols-3 gap-2 text-xs">
+            {/* Drawer Logout */}
+            <div className="p-3 border-t border-slate-800 bg-slate-950 flex items-center justify-between">
               <button
                 onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  onOpenGoogleSheetsSync();
+                  setIsMobileSidebarOpen(false);
+                  if (onLogout) onLogout();
                 }}
-                className="p-2.5 rounded-xl bg-emerald-600 text-white font-bold flex flex-col items-center gap-1 text-center"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-950/60 text-red-300 border border-red-900/60 text-xs font-semibold hover:bg-red-900/60 w-full justify-center"
               >
-                <FileSpreadsheet className="w-4 h-4" />
-                <span>Google Sync</span>
-              </button>
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  onExportExcel();
-                }}
-                className="p-2.5 rounded-xl bg-slate-800 text-slate-200 font-semibold flex flex-col items-center gap-1 text-center border border-slate-700"
-              >
-                <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-                <span>Excel (.xlsx)</span>
-              </button>
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  onOpenPythonScript();
-                }}
-                className="p-2.5 rounded-xl bg-indigo-600 text-white font-semibold flex flex-col items-center gap-1 text-center"
-              >
-                <Code2 className="w-4 h-4" />
-                <span>Python Script</span>
+                <LogOut className="w-4 h-4" />
+                <span>লগআউট করুন</span>
               </button>
             </div>
           </div>
+          <div className="flex-1" onClick={() => setIsMobileSidebarOpen(false)}></div>
         </div>
       )}
-
-      {/* Mobile Sticky Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 sm:hidden bg-slate-900/95 border-t border-slate-800 backdrop-blur px-2 py-1 flex items-center justify-around shadow-2xl print:hidden">
-        <button
-          onClick={() => setActiveTab('dashboard')}
-          className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium min-w-[56px] ${
-            activeTab === 'dashboard' ? 'text-blue-400 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <LayoutDashboard className="w-5 h-5 mb-0.5" />
-          <span>ড্যাশবোর্ড</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('students')}
-          className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium min-w-[56px] ${
-            activeTab === 'students' ? 'text-blue-400 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <Users className="w-5 h-5 mb-0.5" />
-          <span>শিক্ষার্থী</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('fees')}
-          className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium min-w-[56px] ${
-            activeTab === 'fees' ? 'text-blue-400 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <CreditCard className="w-5 h-5 mb-0.5" />
-          <span>ফি খাতা</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('expenses')}
-          className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium min-w-[56px] ${
-            activeTab === 'expenses' ? 'text-blue-400 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <TrendingDown className="w-5 h-5 mb-0.5" />
-          <span>খরচ</span>
-        </button>
-
-        <button
-          onClick={() => setIsMobileMenuOpen(true)}
-          className="flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium text-amber-400 min-w-[56px]"
-        >
-          <Menu className="w-5 h-5 mb-0.5" />
-          <span>সকল মেনু</span>
-        </button>
-      </div>
     </>
   );
 };
-
